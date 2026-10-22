@@ -1,0 +1,503 @@
+{
+  "source": "reference.png",
+  "source_sha256": "e75412cd30a8b460e85a513be2b21c5f64deafb7ee72ab2bad73340e034dd7dc",
+  "original_size": [
+    725,
+    584
+  ],
+  "zoom": 4,
+  "resampling": "NEAREST",
+  "coordinate_origin": "原图左上角为 (0,0)，x 向右，y 向下",
+  "measurement_rule": "连续暗竖边按相邻像素列分组；选组内亮度中位数最小的列；width_px=x_right-x_left，不加1",
+  "precision_note": "整数像素边界口径；抗锯齿边缘不用于推断原始矢量坐标或亚像素精度",
+  "time_unit": "1 原图像素宽度 = 1 仿真时间单位",
+  "search_regions": {
+    "abstract_tensor": [
+      170,
+      565,
+      208,
+      225
+    ],
+    "abstract_vector": [
+      290,
+      655,
+      228,
+      245
+    ],
+    "abstract_loadK": [
+      35,
+      190,
+      253,
+      270
+    ],
+    "abstract_loadV": [
+      125,
+      275,
+      274,
+      291
+    ],
+    "attention_tensor": [
+      170,
+      675,
+      58,
+      75
+    ],
+    "attention_vector": [
+      290,
+      655,
+      79,
+      95
+    ],
+    "attention_loadK": [
+      30,
+      180,
+      97,
+      114
+    ],
+    "attention_loadV": [
+      125,
+      275,
+      127,
+      144
+    ]
+  },
+  "edge_profiles": {
+    "abstract_tensor": [
+      {
+        "x": 181,
+        "candidate_columns": [
+          181
+        ],
+        "median_intensity": {
+          "181": 31
+        }
+      },
+      {
+        "x": 299,
+        "candidate_columns": [
+          299
+        ],
+        "median_intensity": {
+          "299": 31
+        }
+      },
+      {
+        "x": 441,
+        "candidate_columns": [
+          441
+        ],
+        "median_intensity": {
+          "441": 67
+        }
+      },
+      {
+        "x": 552,
+        "candidate_columns": [
+          552
+        ],
+        "median_intensity": {
+          "552": 61
+        }
+      }
+    ],
+    "abstract_vector": [
+      {
+        "x": 300,
+        "candidate_columns": [
+          300
+        ],
+        "median_intensity": {
+          "300": 3
+        }
+      },
+      {
+        "x": 388,
+        "candidate_columns": [
+          387,
+          388
+        ],
+        "median_intensity": {
+          "387": 148,
+          "388": 49
+        }
+      },
+      {
+        "x": 441,
+        "candidate_columns": [
+          441,
+          442
+        ],
+        "median_intensity": {
+          "441": 42,
+          "442": 91
+        }
+      },
+      {
+        "x": 506,
+        "candidate_columns": [
+          506
+        ],
+        "median_intensity": {
+          "506": 33
+        }
+      },
+      {
+        "x": 552,
+        "candidate_columns": [
+          552
+        ],
+        "median_intensity": {
+          "552": 61
+        }
+      },
+      {
+        "x": 644,
+        "candidate_columns": [
+          644
+        ],
+        "median_intensity": {
+          "644": 3
+        }
+      }
+    ],
+    "abstract_loadK": [
+      {
+        "x": 46,
+        "candidate_columns": [
+          46
+        ],
+        "median_intensity": {
+          "46": 0
+        }
+      },
+      {
+        "x": 133,
+        "candidate_columns": [
+          133
+        ],
+        "median_intensity": {
+          "133": 21
+        }
+      },
+      {
+        "x": 179,
+        "candidate_columns": [
+          179
+        ],
+        "median_intensity": {
+          "179": 31
+        }
+      }
+    ],
+    "abstract_loadV": [
+      {
+        "x": 134,
+        "candidate_columns": [
+          134
+        ],
+        "median_intensity": {
+          "134": 31
+        }
+      },
+      {
+        "x": 221,
+        "candidate_columns": [
+          220,
+          221
+        ],
+        "median_intensity": {
+          "220": 147,
+          "221": 49
+        }
+      },
+      {
+        "x": 267,
+        "candidate_columns": [
+          267
+        ],
+        "median_intensity": {
+          "267": 61
+        }
+      }
+    ],
+    "attention_tensor": [
+      {
+        "x": 181,
+        "candidate_columns": [
+          181
+        ],
+        "median_intensity": {
+          "181": 31
+        }
+      },
+      {
+        "x": 299,
+        "candidate_columns": [
+          299
+        ],
+        "median_intensity": {
+          "299": 31
+        }
+      },
+      {
+        "x": 441,
+        "candidate_columns": [
+          441
+        ],
+        "median_intensity": {
+          "441": 67
+        }
+      },
+      {
+        "x": 552,
+        "candidate_columns": [
+          551,
+          552
+        ],
+        "median_intensity": {
+          "551": 148,
+          "552": 49
+        }
+      },
+      {
+        "x": 670,
+        "candidate_columns": [
+          670
+        ],
+        "median_intensity": {
+          "670": 60
+        }
+      }
+    ],
+    "attention_vector": [
+      {
+        "x": 300,
+        "candidate_columns": [
+          300
+        ],
+        "median_intensity": {
+          "300": 3.0
+        }
+      },
+      {
+        "x": 388,
+        "candidate_columns": [
+          387,
+          388
+        ],
+        "median_intensity": {
+          "387": 148.0,
+          "388": 49.0
+        }
+      },
+      {
+        "x": 441,
+        "candidate_columns": [
+          441,
+          442
+        ],
+        "median_intensity": {
+          "441": 42.0,
+          "442": 91.0
+        }
+      },
+      {
+        "x": 506,
+        "candidate_columns": [
+          506
+        ],
+        "median_intensity": {
+          "506": 33.0
+        }
+      },
+      {
+        "x": 552,
+        "candidate_columns": [
+          552
+        ],
+        "median_intensity": {
+          "552": 61.0
+        }
+      },
+      {
+        "x": 644,
+        "candidate_columns": [
+          644
+        ],
+        "median_intensity": {
+          "644": 3.0
+        }
+      }
+    ],
+    "attention_loadK": [
+      {
+        "x": 39,
+        "candidate_columns": [
+          39
+        ],
+        "median_intensity": {
+          "39": 0
+        }
+      },
+      {
+        "x": 126,
+        "candidate_columns": [
+          126
+        ],
+        "median_intensity": {
+          "126": 21
+        }
+      },
+      {
+        "x": 172,
+        "candidate_columns": [
+          172
+        ],
+        "median_intensity": {
+          "172": 31
+        }
+      }
+    ],
+    "attention_loadV": [
+      {
+        "x": 135,
+        "candidate_columns": [
+          135
+        ],
+        "median_intensity": {
+          "135": 0
+        }
+      },
+      {
+        "x": 222,
+        "candidate_columns": [
+          222
+        ],
+        "median_intensity": {
+          "222": 21
+        }
+      },
+      {
+        "x": 268,
+        "candidate_columns": [
+          268
+        ],
+        "median_intensity": {
+          "268": 31
+        }
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "op": "load1R1",
+      "x_left": 46,
+      "x_right": 133,
+      "width_px": 87,
+      "y_top": 251,
+      "y_bottom": 271,
+      "attention_x_left": 39,
+      "attention_x_right": 126,
+      "attention_width_px": 87
+    },
+    {
+      "op": "wdma1R1",
+      "x_left": 133,
+      "x_right": 179,
+      "width_px": 46,
+      "y_top": 251,
+      "y_bottom": 271,
+      "attention_x_left": 126,
+      "attention_x_right": 172,
+      "attention_width_px": 46
+    },
+    {
+      "op": "load1R2",
+      "x_left": 134,
+      "x_right": 221,
+      "width_px": 87,
+      "y_top": 272,
+      "y_bottom": 292,
+      "attention_x_left": 135,
+      "attention_x_right": 222,
+      "attention_width_px": 87
+    },
+    {
+      "op": "wdma1R2",
+      "x_left": 221,
+      "x_right": 267,
+      "width_px": 46,
+      "y_top": 272,
+      "y_bottom": 292,
+      "attention_x_left": 222,
+      "attention_x_right": 268,
+      "attention_width_px": 46
+    },
+    {
+      "op": "tensor1R1",
+      "x_left": 181,
+      "x_right": 299,
+      "width_px": 118,
+      "y_top": 206,
+      "y_bottom": 226,
+      "attention_x_left": 181,
+      "attention_x_right": 299,
+      "attention_width_px": 118
+    },
+    {
+      "op": "vector1R1",
+      "x_left": 300,
+      "x_right": 388,
+      "width_px": 88,
+      "y_top": 226,
+      "y_bottom": 246,
+      "attention_x_left": 300,
+      "attention_x_right": 388,
+      "attention_width_px": 88
+    },
+    {
+      "op": "vector1R2",
+      "x_left": 388,
+      "x_right": 441,
+      "width_px": 53,
+      "y_top": 226,
+      "y_bottom": 246,
+      "attention_x_left": 388,
+      "attention_x_right": 441,
+      "attention_width_px": 53
+    },
+    {
+      "op": "tensor1R2",
+      "x_left": 441,
+      "x_right": 552,
+      "width_px": 111,
+      "y_top": 206,
+      "y_bottom": 226,
+      "attention_x_left": 441,
+      "attention_x_right": 552,
+      "attention_width_px": 111
+    },
+    {
+      "op": "vector1R3",
+      "x_left": 441,
+      "x_right": 506,
+      "width_px": 65,
+      "y_top": 226,
+      "y_bottom": 246,
+      "attention_x_left": 441,
+      "attention_x_right": 506,
+      "attention_width_px": 65
+    },
+    {
+      "op": "vector1R4",
+      "x_left": 552,
+      "x_right": 644,
+      "width_px": 92,
+      "y_top": 226,
+      "y_bottom": 246,
+      "attention_x_left": 552,
+      "attention_x_right": 644,
+      "attention_width_px": 92
+    }
+  ]
+}

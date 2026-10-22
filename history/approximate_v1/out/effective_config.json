@@ -1,0 +1,96 @@
+{
+  "iterations": 100,
+  "queue_depth": 5,
+  "policy": "ooo",
+  "max_cycles": 1000000,
+  "operations": [
+    {
+      "id": "load1R1",
+      "engine": "rdma",
+      "duration": 9,
+      "label": "load K0",
+      "deps": []
+    },
+    {
+      "id": "wdma1R1",
+      "engine": "wdma",
+      "duration": 5,
+      "label": "wdma K",
+      "deps": [
+        "load1R1"
+      ]
+    },
+    {
+      "id": "load1R2",
+      "engine": "rdma",
+      "duration": 9,
+      "label": "load V0",
+      "deps": []
+    },
+    {
+      "id": "wdma1R2",
+      "engine": "wdma",
+      "duration": 5,
+      "label": "wdma V",
+      "deps": [
+        "load1R2"
+      ]
+    },
+    {
+      "id": "tensor1R1",
+      "engine": "tensor",
+      "duration": 12,
+      "label": "MM1",
+      "deps": [
+        "wdma1R1"
+      ]
+    },
+    {
+      "id": "vector1R1",
+      "engine": "vector",
+      "duration": 9,
+      "label": "v scale",
+      "deps": [
+        "tensor1R1"
+      ]
+    },
+    {
+      "id": "vector1R2",
+      "engine": "vector",
+      "duration": 5,
+      "label": "fa0",
+      "deps": [
+        "vector1R1"
+      ]
+    },
+    {
+      "id": "tensor1R2",
+      "engine": "tensor",
+      "duration": 11,
+      "label": "MM2",
+      "deps": [
+        "wdma1R2",
+        "vector1R2"
+      ]
+    },
+    {
+      "id": "vector1R3",
+      "engine": "vector",
+      "duration": 7,
+      "label": "fa1",
+      "deps": [
+        "vector1R2"
+      ]
+    },
+    {
+      "id": "vector1R4",
+      "engine": "vector",
+      "duration": 9,
+      "label": "fa2",
+      "deps": [
+        "tensor1R2",
+        "vector1R3"
+      ]
+    }
+  ]
+}

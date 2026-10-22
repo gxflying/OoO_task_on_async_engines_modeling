@@ -1,0 +1,115 @@
+{
+  "output": "/mnt/d/02_学习总结/06_perf_tuning/02_simt_OoO_pipeline/modeling/out",
+  "instructions": 1000,
+  "makespan": 30097,
+  "steady": {
+    "start": 654,
+    "end": 1250,
+    "confirmed_at": 1250,
+    "period": 298,
+    "iterations_per_period": 1,
+    "observed_periods": 2,
+    "criterion": "完整调度状态经轮次平移后连续三次相同；确认两个周期",
+    "measurement_start": 654,
+    "measurement_end": 29560,
+    "measurement_periods": 97
+  },
+  "metrics": {
+    "work_per_iteration": {
+      "rdma": 174,
+      "wdma": 92,
+      "tensor": 229,
+      "vector": 298
+    },
+    "ii_lower_bound": 298,
+    "full": {
+      "start": 0,
+      "end": 30097,
+      "duration": 30097,
+      "units": {
+        "rdma": {
+          "busy": 17400,
+          "utilization": 0.5781307107020633,
+          "idle_dependency": 0,
+          "idle_empty": 12697,
+          "queue_max": 3,
+          "queue_mean": 0.30062796956507293
+        },
+        "wdma": {
+          "busy": 9200,
+          "utilization": 0.3056783068079875,
+          "idle_dependency": 12752,
+          "idle_empty": 8145,
+          "queue_max": 4,
+          "queue_mean": 0.8787586802671362
+        },
+        "tensor": {
+          "busy": 22900,
+          "utilization": 0.7608731767285776,
+          "idle_dependency": 7105,
+          "idle_empty": 92,
+          "queue_max": 3,
+          "queue_mean": 1.9192278300162806
+        },
+        "vector": {
+          "busy": 29800,
+          "utilization": 0.9901319068345682,
+          "idle_dependency": 297,
+          "idle_empty": 0,
+          "queue_max": 5,
+          "queue_mean": 4.9556434196099275
+        }
+      },
+      "completed_iterations": 100,
+      "throughput": 0.0033225902913911684,
+      "mean_utilization": 0.6587035252682991,
+      "frontend_stall_cycles": 29596
+    },
+    "ooo_issues": 198,
+    "steady": {
+      "start": 654,
+      "end": 29560,
+      "duration": 28906,
+      "units": {
+        "rdma": {
+          "busy": 16878,
+          "utilization": 0.5838926174496645,
+          "idle_dependency": 0,
+          "idle_empty": 12028,
+          "queue_max": 1,
+          "queue_mean": 0.29194630872483224
+        },
+        "wdma": {
+          "busy": 8924,
+          "utilization": 0.3087248322147651,
+          "idle_dependency": 12416,
+          "idle_empty": 7566,
+          "queue_max": 2,
+          "queue_mean": 0.8758389261744967
+        },
+        "tensor": {
+          "busy": 22213,
+          "utilization": 0.7684563758389261,
+          "idle_dependency": 6693,
+          "idle_empty": 0,
+          "queue_max": 2,
+          "queue_mean": 1.9328859060402686
+        },
+        "vector": {
+          "busy": 28906,
+          "utilization": 1.0,
+          "idle_dependency": 0,
+          "idle_empty": 0,
+          "queue_max": 5,
+          "queue_mean": 5.0
+        }
+      },
+      "completed_iterations": 97,
+      "throughput": 0.003355704697986577,
+      "mean_utilization": 0.6652684563758389,
+      "frontend_stall_cycles": 28906,
+      "ii": 298.0,
+      "bound_efficiency": 1.0
+    }
+  }
+}

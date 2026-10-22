@@ -1,0 +1,21 @@
+test_completed_token_is_persistent (test_pipeline.PipelineTests) ... ok
+test_deadlock_and_timeout_are_reported (test_pipeline.PipelineTests) ... ok
+test_depth_and_fifo_change_actual_schedule (test_pipeline.PipelineTests) ... ok
+test_fork_join_waits_for_all_producers (test_pipeline.PipelineTests) ... ok
+test_frontend_blocking_is_global_but_execution_is_async (test_pipeline.PipelineTests) ... ok
+test_invalid_input_and_cycles (test_pipeline.PipelineTests) ... ok
+test_iter_tokens_are_separate_and_iterations_overlap (test_pipeline.PipelineTests) ... ok
+test_no_fake_stability_for_short_run (test_pipeline.PipelineTests) ... ok
+test_oldest_ready_has_priority (test_pipeline.PipelineTests) ... ok
+test_ooo_bypasses_blocked_head (test_pipeline.PipelineTests) ... ok
+test_per_engine_depth_configuration (test_pipeline.PipelineTests) ... ok
+test_random_dags_obey_work_conservation_and_independent_dependencies (test_pipeline.PipelineTests) ... ok
+test_screenshot_single_iteration_by_hand (test_pipeline.PipelineTests) ... ok
+test_steady_state_matches_longer_run_and_resource_bound (test_pipeline.PipelineTests) ... ok
+test_verifier_rejects_corrupted_dependency_and_overlap (test_pipeline.PipelineTests) ... ok
+test_zero_frontend_and_same_time_refill (test_pipeline.PipelineTests) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 0.497s
+
+OK

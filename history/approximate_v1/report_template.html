@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Attention pipe · 乱序执行模拟</title>
+<style>
+:root{color-scheme:light;--ink:#1c2630;--muted:#596673;--line:#d7dee4;--accent:#d92d20;--blue:#175cd3}
+*{box-sizing:border-box}body{margin:0;background:#fff;color:var(--ink);font:14px/1.6 "Segoe UI","Microsoft YaHei","Noto Sans CJK SC",sans-serif}
+main{max-width:1560px;margin:auto;padding:30px 34px 64px}h1{font-size:27px;line-height:1.25;margin:6px 0 10px}h2{font-size:18px;margin:0 0 12px}h3{font-size:15px;margin:20px 0 8px}p{margin:8px 0}.eyebrow{font-size:12px;letter-spacing:1px;color:var(--accent);font-weight:700}.muted{color:var(--muted)}.mono{font-family:Consolas,monospace;font-variant-numeric:tabular-nums}
+header{border-bottom:1px solid var(--line);padding-bottom:20px}.metrics{display:flex;gap:34px;flex-wrap:wrap;padding:20px 0}.metric{min-width:150px}.value{display:block;font-size:26px;line-height:1.3;font-weight:650}.caption{color:var(--muted);font-size:12px}section{margin-top:28px}.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0}label{display:inline-flex;align-items:center;gap:6px}button,input,select{font:inherit;color:inherit;border:1px solid #bbc5ce;border-radius:4px;background:#fff;padding:5px 9px}button{cursor:pointer}button:hover{background:#f0f5fa}button.active{background:#e8f1ff;border-color:var(--blue);color:var(--blue)}input[type=number]{width:100px}input[type=checkbox]{width:16px;height:16px}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.plot{border:1px solid var(--line);overflow-x:auto;max-width:100%;background:white}.plot svg{display:block}svg text{font-family:Consolas,"Microsoft YaHei","Noto Sans CJK SC",sans-serif;fill:#17212b}.note{padding:8px 0;color:var(--muted)}.detail{padding:10px 12px;background:#f5f8fa;border-left:3px solid #879aaa;min-height:48px;overflow-wrap:anywhere}.selected{stroke:var(--accent)!important;stroke-width:2.5px!important}.op{cursor:pointer}.dep{stroke:#788999;fill:none;stroke-width:1.2}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}th,td{text-align:left;padding:9px 12px;border-bottom:1px solid #e4e8eb;white-space:nowrap}th{color:#485663;font-size:12px;font-weight:600}td.num,th.num{text-align:right}tbody tr.current{background:#edf5ff}details{margin-top:20px}summary{cursor:pointer;font-weight:600}code{font-family:Consolas,monospace;background:#f1f4f6;padding:1px 4px}pre{overflow-x:auto;background:#f5f7f9;padding:16px;font-size:12px}.columns{display:grid;grid-template-columns:1fr 1fr;gap:28px}.columns>*{min-width:0}.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px}.swatch{display:inline-block;width:11px;height:11px;margin-right:5px;border:1px solid #687987;vertical-align:middle}.error{color:#bd2216}.limit{border-left:3px solid var(--accent);padding-left:12px}footer{margin-top:32px;border-top:1px solid var(--line);padding-top:14px;color:var(--muted);font-size:12px}
+@media(max-width:760px){main{padding:18px 14px 36px}h1{font-size:23px}.columns{grid-template-columns:1fr}.metrics{gap:18px}.metric{min-width:130px}.value{font-size:23px}.toolbar{gap:8px}.toolbar input[type=number]{width:82px}}
+@media print{.toolbar{display:none}main{padding:0}.plot{overflow:visible}section{break-inside:avoid}.detail{display:none}}
+</style>
+</head>
+<body><main>
+<header><div class="eyebrow">ATTENTION PIPE / ASYNCHRONOUS ISSUE</div><h1>有限队列下的乱序执行流水线</h1><p id="subtitle" class="muted"></p><p id="conclusion"></p></header>
+<div class="metrics" id="metrics"></div>
+<section><h2>执行时间线</h2>
+<p class="muted">方块宽度与执行时间严格成比例。横轴为相对时间单位，不代表实际硬件时钟；浅色方块标识循环轮次。</p>
+<div class="toolbar" id="presets"><button data-preset="steady" class="active">稳定阶段</button><button data-preset="startup">启动阶段</button><button data-preset="tail">结束阶段</button><button data-preset="all">全部循环</button></div>
+<div class="toolbar">
+<label>布局 <select id="layout"><option value="hardware">四个硬件单元</option><option value="iteration">按循环展开（原图 pipe 风格）</option></select></label>
+<label>起点 <input id="start" type="number" min="0" value="0"></label>
+<label>窗口 <input id="span" type="number" min="1" value="180"></label>
+<label><input id="arrows" type="checkbox">显示依赖箭头</label>
+<button id="apply">更新视图</button><button id="export">导出当前 SVG</button>
+</div>
+<p id="window-note" class="note"></p><div id="timeline" class="plot"></div>
+<p class="legend" id="legend"></p><div id="selection" class="detail" aria-live="polite">点击方块查看轮次、时长、入队时刻、依赖与越过的旧指令。</div>
+</section>
+<section><h2>队列占用与前端反压</h2><p class="muted">每个时间点记录零耗时入队/发射结束后的队列状态，深度不包含执行中的指令。下图与执行时间线使用同一窗口。</p><div class="plot" id="queues"></div><p id="queue-note" class="note"></p></section>
+<section><h2>稳定阶段与完整运行</h2><p id="steady-note" class="muted"></p><div class="table-wrap"><table id="utilization"></table></div><p id="util-note" class="note"></p></section>
+<section id="comparison-section"><h2>队列深度和发射策略对照</h2><p class="muted">所有对照均使用相同依赖、时长、前端程序序与循环次数；FIFO 仅允许发射队首，OoO 选择队列中最老的就绪指令。</p><div class="table-wrap"><table id="comparisons"></table></div></section>
+<section><h2>单轮 pipe 与依赖解释</h2><p class="muted">下面展示本次运行中第 0 轮的实际执行位置。RDMA/WDMA 分别在两个 load 行中拼接，Tensor 与 Vector 单独成行，与截图结构一致。</p><div class="plot" id="single"></div>
+<div class="columns"><div><h3>指令模板</h3><div class="table-wrap"><table id="operations"></table></div></div><div><h3>模型约定</h3><ul>
+<li>不同循环没有依赖；每条依赖仅匹配同一轮中的生产者。</li>
+<li>RDMA / WDMA / Tensor / Vector 各一个，每个单元同时最多执行一条指令；执行期间不可抢占。</li>
+<li>所有指令异步。前端解码、入队、仲裁和完成唤醒不计耗时；队列满时反压全局前端。</li>
+<li>前端按下表程序序逐轮连续入队，不等待指令完成。发射释放槽位后同一时间点可补入新指令。</li>
+<li>依赖在执行结束边界可见；<code>[start,end)</code> 占用执行单元，下一条可在 end 立即开始。</li>
+<li>就绪条件：执行单元空闲且所有依赖完成。OoO 从当前队列选择最老的就绪指令；不使用未来信息。</li>
+<li>忽略额外共享带宽、缓冲区别名、寄存器数量、访存波动等资源限制；这是给定依赖图下的调度模型。</li>
+</ul><p class="limit">时长来自用户确认的截图比例；未做 FlashAttention 数值计算，也不把相对时间换算为真实硬件性能。</p></div></div>
+</section>
+<details><summary>稳定性判定与复现信息</summary><p>每个时间点对“前端下一条位置、各队列内容、执行中指令及剩余时间、仍有关联的完成 token”做轮次归一化。完整状态连续三次相同且时间/轮次平移量一致，确认两个重复周期。统计窗口取前端尚未耗尽期间的整数个周期。</p><p>未检测到重复状态时，报告明确显示“未确认稳定”，不会用末尾排空区间冒充稳态。改变配置需重新运行 Python；本页面的控件只调整实际轨迹的显示。</p><pre id="reproduce"></pre></details>
+<footer id="footer"></footer>
+</main>
+<script id="report-data" type="application/json">__REPORT_DATA__</script>
+<script>
+"use strict";
+const D=JSON.parse(document.getElementById("report-data").textContent);
+const E=["rdma","wdma","tensor","vector"], names={rdma:"RDMA",wdma:"WDMA",tensor:"Tensor",vector:"Vector"};
+const colors=["#e8f1ff","#fff0da","#e5f4ed","#f1e9fa","#fde8e6","#e4f3f7"];
+const $=id=>document.getElementById(id), pct=x=>(100*x).toFixed(2)+"%", num=x=>Number.isInteger(x)?String(x):x.toFixed(2);
+const esc=x=>String(x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+let selected=null, currentSvg="";
+const sm=D.metrics.steady, full=D.metrics.full;
+$("subtitle").textContent=`${D.config.iterations} 轮 · ${D.records.length} 条指令 · 每种执行单元各 1 个 · 队列深度 ${JSON.stringify(D.config.queue_depth)} · ${D.config.policy.toUpperCase()} · 前端零耗时`;
+$("conclusion").textContent=sm?`稳定后平均每 ${num(sm.ii)} 个时间单位完成一轮，达到资源吞吐上限的 ${pct(sm.bound_efficiency)}。`:`本次完整运行耗时 ${D.makespan}；未确认稳定周期。`;
+const metrics=[["稳态平均完成间隔",sm?num(sm.ii):"未确认","相对时间 / 轮"],["100% 资源上限对应间隔",num(D.metrics.ii_lower_bound),"max（各单元每轮工作量）"],[`${D.config.iterations} 轮总耗时`,num(D.makespan),"包含启动与排空"],["实际越过旧指令发射",D.metrics.ooo_issues,"次；可点击方块查看"]];
+$("metrics").innerHTML=metrics.map(([a,b,c])=>`<div class="metric"><span class="caption">${a}</span><span class="value mono">${b}</span><span class="caption">${c}</span></div>`).join("");
+$("legend").innerHTML=colors.map((c,i)=>`<span><i class="swatch" style="background:${c}"></i>轮次 % 6 = ${i}</span>`).join("")+"<span>虚线方块边框：本次发射越过队列中旧指令</span>";
+$("steady-note").textContent=D.steady?`完整状态在 t=${D.steady.start}、${D.steady.start+D.steady.period}、${D.steady.confirmed_at} 重复，每 ${D.steady.period} 单位推进 ${D.steady.iterations_per_period} 轮。稳态统计窗口 [${sm.start}, ${sm.end})，共 ${D.steady.measurement_periods} 个周期。`:"没有足够的重复状态证据；以下仅显示完整运行统计。";
+$("utilization").innerHTML="<thead><tr><th>执行单元</th><th class='num'>每轮占用</th><th class='num'>稳态利用率</th><th class='num'>全程利用率</th><th class='num'>稳态依赖空闲</th><th class='num'>稳态空队列空闲</th><th class='num'>稳态平均队列占用</th></tr></thead><tbody>"+E.map(e=>`<tr><td>${names[e]}</td><td class="num">${D.metrics.work_per_iteration[e]}</td><td class="num">${sm?pct(sm.units[e].utilization):"—"}</td><td class="num">${pct(full.units[e].utilization)}</td><td class="num">${sm?sm.units[e].idle_dependency:"—"}</td><td class="num">${sm?sm.units[e].idle_empty:"—"}</td><td class="num">${sm?num(sm.units[e].queue_mean):"—"} / ${D.depths[e]}</td></tr>`).join("")+"</tbody>";
+$("util-note").textContent=`四单元平均忙碌比例：稳态 ${sm?pct(sm.mean_utilization):"未确认"}，全程 ${pct(full.mean_utilization)}。该平均值不等于吞吐效率：工作量不均衡会使其他单元空闲，即使瓶颈单元已满载。`;
+if(D.comparisons.length){$("comparisons").innerHTML="<thead><tr><th>策略</th><th class='num'>队列深度</th><th class='num'>总耗时</th><th class='num'>稳态间隔</th><th class='num'>吞吐上限达成率</th><th class='num'>Vector 稳态利用率</th></tr></thead><tbody>"+D.comparisons.map(c=>{const s=c.metrics.steady;return `<tr class="${c.policy===D.config.policy&&JSON.stringify(c.queue_depth)===JSON.stringify(D.config.queue_depth)?"current":""}"><td>${c.policy.toUpperCase()}</td><td class="num">${esc(JSON.stringify(c.queue_depth))}</td><td class="num">${c.makespan}</td><td class="num">${s?num(s.ii):"未确认"}</td><td class="num">${s?pct(s.bound_efficiency):"—"}</td><td class="num">${s?pct(s.units.vector.utilization):"—"}</td></tr>`}).join("")+"</tbody>";}else{$("comparison-section").hidden=true}
+$("operations").innerHTML="<thead><tr><th>程序序</th><th>指令 / 对应计算</th><th>单元</th><th class='num'>时长</th><th>依赖</th></tr></thead><tbody>"+D.config.operations.map((o,i)=>`<tr><td>${i}</td><td>${esc(o.id)}<br><small class="muted">${esc(o.label||o.id)}</small></td><td>${names[o.engine]}</td><td class="num">${o.duration}</td><td>${o.deps.map(esc).join(" + ")||"无"}</td></tr>`).join("")+"</tbody>";
+$("reproduce").textContent=`WSL / Python 3 标准库\npython3 modeling/pipeline.py --compare\npython3 -m unittest discover -s modeling/tests -v\n\n有效配置见 effective_config.json\n配置 SHA-256: ${D.config_sha256}\n\n`+JSON.stringify(D.config,null,2);
+$("footer").textContent="数据来源：Python 逐周期模拟及轨迹约束核验。此 HTML 内嵌全部轨迹，不依赖服务器或外部脚本。";
+
+function ticks(span){let raw=span/14,p=10**Math.floor(Math.log10(raw));return [1,2,5,10].map(x=>x*p).find(x=>x>=raw)||10*p}
+function frame(width,height,start,end,top,bottom){
+  const left=110,right=22,scale=(width-left-right)/(end-start),x=t=>left+(t-start)*scale;
+  const step=ticks(end-start),minor=step/5;
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="执行时序，方块宽度对应执行时间"><defs><marker id="arrow" viewBox="0 0 6 6" refX="5" refY="3" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#788999"/></marker></defs><rect width="${width}" height="${height}" fill="white"/>`;
+  for(let t=Math.ceil(start/minor)*minor;t<=end;t+=minor)s+=`<line x1="${x(t)}" y1="${top}" x2="${x(t)}" y2="${bottom}" stroke="#eef1f4"/>`;
+  for(let t=Math.ceil(start/step)*step;t<=end;t+=step)s+=`<line x1="${x(t)}" y1="${top-5}" x2="${x(t)}" y2="${bottom}" stroke="#d4dbe2"/><text x="${x(t)}" y="22" text-anchor="middle" font-size="11">${num(t)}</text>`;
+  s+=`<text x="12" y="22" font-size="11">相对时间 →</text>`;
+  return {s,x,scale,left,right};
+}
+function block(r,y,x,scale,start,end){
+  const bx=x(Math.max(start,r.start)),w=(Math.min(end,r.end)-Math.max(start,r.start))*scale;
+  const text=`i${r.iteration} ${r.op}`,compact=r.label.replace("v scale","scale").replace("load K0","loadK").replace("load V0","loadV"),short=`${compact}·${r.iteration}`;
+  let label=text.length*7.2<w-8?text:short.length*7.2<w-8?short:(r.label.startsWith("wdma")?"wdma":compact).length*7.2<w-4?(r.label.startsWith("wdma")?"wdma":compact):w>25?`i${r.iteration}`:"";
+  return `<g class="op" data-seq="${r.seq}"><title>${esc(text)} | ${r.label?esc(r.label):""} | [${r.start},${r.end}) | 时长 ${r.duration} | 入队 ${r.enqueue}</title><rect x="${bx}" y="${y}" width="${w}" height="26" fill="${colors[r.iteration%6]}" stroke="#33434f" stroke-width="1" ${r.bypassed.length?'stroke-dasharray="4 2"':""} class="${selected===r.seq?"selected":""}"/><text x="${bx+w/2}" y="${y+17}" text-anchor="middle" font-size="12">${esc(label)}</text></g>`;
+}
+function dependencies(records,yFor,x,start,end){
+  let s="";
+  for(const r of records)for(const dep of r.deps){const d=D.records[dep];if(d.end<start||r.start>end||d.end>end||r.start<start)continue;const sy=yFor(d),ty=yFor(r);if(sy===undefined||ty===undefined)continue;const a=x(d.end),b=x(r.start),mid=(a+b)/2;s+=`<path class="dep" d="M${a},${sy+13} C${mid},${sy+13} ${mid},${ty+13} ${b},${ty+13}" marker-end="url(#arrow)"/>`;}return s;
+}
+function drawTimeline(start,end){
+  const host=$("timeline"),byIteration=$("layout").value==="iteration",visible=D.records.filter(r=>r.end>start&&r.start<end);
+  const iterations=[...new Set(visible.map(r=>r.iteration))].sort((a,b)=>a-b),width=Math.max(900,host.clientWidth),row=byIteration?34:54;
+  const h=byIteration?70+iterations.length*165:295;
+  const {x,scale,...f}=frame(width,h,start,end,38,h-32);let s=f.s;
+  const lane=o=>o.engine==="tensor"?0:o.engine==="vector"?1:/R2$/.test(o.op)?3:2;
+  const yFor=r=>byIteration?55+iterations.indexOf(r.iteration)*165+lane(r)*row:60+E.indexOf(r.engine)*54;
+  if(byIteration){for(const i of iterations){const y=45+iterations.indexOf(i)*165;s+=`<text x="12" y="${y}" fill="#d92d20" font-size="12" font-weight="bold">pipe ${i}</text>`;["Tensor","Vector","load K","load V"].forEach((l,k)=>s+=`<text x="16" y="${y+28+k*row}" font-size="10">${l}</text>`);s+=`<line x1="0" y1="${y+151}" x2="${width}" y2="${y+151}" stroke="#d7dee4" stroke-dasharray="3 4"/>`}}
+  else E.forEach((e,k)=>{let y=60+k*54;s+=`<text x="12" y="${y+18}" font-size="13">${names[e]}</text><line x1="110" y1="${y+39}" x2="${width-22}" y2="${y+39}" stroke="#e3e8ec"/>`});
+  if($("arrows").checked)s+=dependencies(visible,yFor,x,start,end);
+  for(const r of visible)s+=block(r,yFor(r),x,scale,start,end);
+  if(D.steady){for(const t of [D.steady.start,D.steady.measurement_end])if(start<t&&t<end)s+=`<line x1="${x(t)}" y1="35" x2="${x(t)}" y2="${h-30}" stroke="#d92d20" stroke-dasharray="4 4"/>`}
+  s+="</svg>";host.innerHTML=s;currentSvg=s;
+}
+function drawQueues(start,end){
+  const width=Math.max(900,$("queues").clientWidth),h=260,{x,scale,...f}=frame(width,h,start,end,36,232);let s=f.s;
+  E.forEach((e,k)=>{const y=62+k*38,depth=D.depths[e];s+=`<text x="12" y="${y+7}" font-size="12">${names[e]} / ${depth}</text><line x1="110" y1="${y+15}" x2="${width-22}" y2="${y+15}" stroke="#d7dee4"/>`;let path="",prev=null;
+    for(let t=Math.floor(start);t<Math.ceil(end);t++){const c=D.cycles[t];if(!c)continue;const v=c.queues[e].length,yy=y+15-v/depth*25;if(v!==prev){path+=path?` H${x(t)} V${yy}`:`M${x(t)},${yy}`;prev=v}}
+    path+=` H${x(end)}`;s+=`<path d="${path}" fill="none" stroke="#28669e" stroke-width="1.6"/>`;
+  });
+  s+=`<text x="12" y="230" font-size="12">前端反压</text>`;
+  let run=null,stalls=0;
+  for(let t=Math.floor(start);t<=Math.ceil(end);t++){const blocked=t<end&&D.cycles[t]?.blocked_engine;if(blocked){stalls++;if(run===null)run=t}if(!blocked&&run!==null){s+=`<rect x="${x(Math.max(start,run))}" y="216" width="${(Math.min(t,end)-Math.max(start,run))*scale}" height="15" fill="#f5d4bf"/>`;run=null}}
+  s+="</svg>";$("queues").innerHTML=s;$("queue-note").textContent=`当前窗口反压 ${stalls} / ${end-start} 时间单位。反压表示有限队列限制前端继续送入，不代表执行单元必须停止。`;
+}
+function drawSingle(){
+  const rs=D.records.filter(r=>r.iteration===0),start=Math.min(...rs.map(r=>r.start)),end=Math.max(...rs.map(r=>r.end));
+  const width=Math.max(900,$("single").clientWidth),h=235,{x,scale,...f}=frame(width,h,start,end,36,215);let s=f.s;
+  const lane=r=>r.engine==="tensor"?0:r.engine==="vector"?1:/R2$/.test(r.op)?3:2,yFor=r=>53+lane(r)*40;
+  ["Tensor","Vector","load K","load V"].forEach((l,k)=>s+=`<text x="12" y="${70+k*40}" font-size="12">${l}</text>`);
+  s+=dependencies(rs,yFor,x,start,end);for(const r of rs)s+=block(r,yFor(r),x,scale,start,end);$("single").innerHTML=s+"</svg>";
+}
+function render(){
+  let start=Math.max(0,Math.min(D.makespan-1,Number($("start").value)||0)),span=Math.max(1,Number($("span").value)||180);
+  start=Math.floor(start);let end=Math.min(D.makespan,start+Math.floor(span));$("start").value=start;$("span").value=end-start;
+  $("window-note").textContent=`显示 [${start}, ${end})；每个方块的完整时刻可点击查看。${$("layout").value==="iteration"?"同一列表示同时执行，按循环分组便于对照原图。":"四条行分别对应唯一的执行单元，同一行的方块不可重叠。"}`;
+  drawTimeline(start,end);drawQueues(start,end);
+}
+function preset(which){let s=0,span=180;if(which==="steady")s=D.steady?.start||0;if(which==="tail")s=Math.max(0,D.makespan-span);if(which==="all")span=D.makespan;$("start").value=s;$("span").value=span;document.querySelectorAll("[data-preset]").forEach(b=>b.classList.toggle("active",b.dataset.preset===which));render()}
+document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>preset(b.dataset.preset)));
+$("apply").addEventListener("click",render);$("layout").addEventListener("change",render);$("arrows").addEventListener("change",render);
+document.addEventListener("click",e=>{const el=e.target.closest("[data-seq]");if(!el)return;selected=Number(el.dataset.seq);const r=D.records[selected],dep=r.deps.map(s=>`i${D.records[s].iteration}/${D.records[s].op} @${D.records[s].end}`).join("；")||"无";$("selection").textContent=`i${r.iteration} / ${r.op}（${r.label}）｜${names[r.engine]}｜入队 ${r.enqueue}，执行 [${r.start}, ${r.end})，时长 ${r.duration}｜依赖：${dep}｜越过旧指令：${r.bypassed.map(s=>`i${D.records[s].iteration}/${D.records[s].op}`).join("、")||"无"}`;render();drawSingle()});
+$("export").addEventListener("click",()=>{const style='<style>text{font-family:Consolas,"Microsoft YaHei",sans-serif;fill:#17212b}.dep{stroke:#788999;fill:none;stroke-width:1.2}</style>',svg=currentSvg.replace("<defs>",style+"<defs>"),url=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml;charset=utf-8"})),a=document.createElement("a");a.href=url;a.download="attention-pipeline.svg";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});
+window.addEventListener("resize",()=>{render();drawSingle()});preset("steady");drawSingle();
+</script></body></html>

@@ -1,0 +1,16 @@
+{
+  "page_errors": [],
+  "tested": [
+    "startup",
+    "steady",
+    "tail",
+    "all 1000 instructions",
+    "iteration layout",
+    "dependency arrows",
+    "instruction selection",
+    "width = time",
+    "SVG export",
+    "390px mobile overflow"
+  ],
+  "result": "PASS"
+}

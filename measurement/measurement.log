@@ -1,0 +1,112 @@
+[
+  {
+    "op": "load1R1",
+    "x_left": 46,
+    "x_right": 133,
+    "width_px": 87,
+    "y_top": 251,
+    "y_bottom": 271,
+    "attention_x_left": 39,
+    "attention_x_right": 126,
+    "attention_width_px": 87
+  },
+  {
+    "op": "wdma1R1",
+    "x_left": 133,
+    "x_right": 179,
+    "width_px": 46,
+    "y_top": 251,
+    "y_bottom": 271,
+    "attention_x_left": 126,
+    "attention_x_right": 172,
+    "attention_width_px": 46
+  },
+  {
+    "op": "load1R2",
+    "x_left": 134,
+    "x_right": 221,
+    "width_px": 87,
+    "y_top": 272,
+    "y_bottom": 292,
+    "attention_x_left": 135,
+    "attention_x_right": 222,
+    "attention_width_px": 87
+  },
+  {
+    "op": "wdma1R2",
+    "x_left": 221,
+    "x_right": 267,
+    "width_px": 46,
+    "y_top": 272,
+    "y_bottom": 292,
+    "attention_x_left": 222,
+    "attention_x_right": 268,
+    "attention_width_px": 46
+  },
+  {
+    "op": "tensor1R1",
+    "x_left": 181,
+    "x_right": 299,
+    "width_px": 118,
+    "y_top": 206,
+    "y_bottom": 226,
+    "attention_x_left": 181,
+    "attention_x_right": 299,
+    "attention_width_px": 118
+  },
+  {
+    "op": "vector1R1",
+    "x_left": 300,
+    "x_right": 388,
+    "width_px": 88,
+    "y_top": 226,
+    "y_bottom": 246,
+    "attention_x_left": 300,
+    "attention_x_right": 388,
+    "attention_width_px": 88
+  },
+  {
+    "op": "vector1R2",
+    "x_left": 388,
+    "x_right": 441,
+    "width_px": 53,
+    "y_top": 226,
+    "y_bottom": 246,
+    "attention_x_left": 388,
+    "attention_x_right": 441,
+    "attention_width_px": 53
+  },
+  {
+    "op": "tensor1R2",
+    "x_left": 441,
+    "x_right": 552,
+    "width_px": 111,
+    "y_top": 206,
+    "y_bottom": 226,
+    "attention_x_left": 441,
+    "attention_x_right": 552,
+    "attention_width_px": 111
+  },
+  {
+    "op": "vector1R3",
+    "x_left": 441,
+    "x_right": 506,
+    "width_px": 65,
+    "y_top": 226,
+    "y_bottom": 246,
+    "attention_x_left": 441,
+    "attention_x_right": 506,
+    "attention_width_px": 65
+  },
+  {
+    "op": "vector1R4",
+    "x_left": 552,
+    "x_right": 644,
+    "width_px": 92,
+    "y_top": 226,
+    "y_bottom": 246,
+    "attention_x_left": 552,
+    "attention_x_right": 644,
+    "attention_width_px": 92
+  }
+]

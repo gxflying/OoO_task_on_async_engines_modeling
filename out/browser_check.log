@@ -1,0 +1,24 @@
+{
+  "page_errors": [],
+  "tested": [
+    "startup",
+    "steady",
+    "tail",
+    "all 1000 instructions",
+    "iteration layout",
+    "dependency arrows",
+    "instruction selection",
+    "width = time",
+    "SVG export",
+    "390px mobile overflow",
+    "10 measured instruction widths",
+    "5 paired comparison rows",
+    "embedded measurement image",
+    "FIFO tab actual trace coordinates",
+    "FIFO startup/tail/all/iteration views",
+    "FIFO details and SVG export",
+    "keyboard tab switch restores OoO",
+    "FIFO mobile layout"
+  ],
+  "result": "PASS"
+}
