@@ -1,0 +1,13 @@
+{"buffers": 1, "status": "deadlock", "completed": 0, "makespan": null, "ii": null, "peak": 0, "target_met": false, "same_as_v1": false}
+{"buffers": 2, "status": "deadlock", "completed": 0, "makespan": null, "ii": null, "peak": 2, "target_met": false, "same_as_v1": false}
+{"buffers": 3, "status": "complete", "completed": 100, "makespan": 79300, "ii": 793.0, "peak": 3, "target_met": false, "same_as_v1": false}
+{"buffers": 4, "status": "complete", "completed": 100, "makespan": 65935, "ii": 660.0, "peak": 4, "target_met": false, "same_as_v1": false}
+{"buffers": 5, "status": "complete", "completed": 100, "makespan": 58667, "ii": 587.0, "peak": 5, "target_met": false, "same_as_v1": false}
+{"buffers": 6, "status": "complete", "completed": 100, "makespan": 59376, "ii": 595.0, "peak": 6, "target_met": false, "same_as_v1": false}
+{"buffers": 7, "status": "complete", "completed": 100, "makespan": 44953, "ii": 448.25, "peak": 7, "target_met": false, "same_as_v1": false}
+{"buffers": 8, "status": "complete", "completed": 100, "makespan": 47584, "ii": 477.0, "peak": 8, "target_met": false, "same_as_v1": false}
+{"buffers": 9, "status": "complete", "completed": 100, "makespan": 30097, "ii": 298.0, "peak": 9, "target_met": true, "same_as_v1": false}
+{"buffers": 10, "status": "complete", "completed": 100, "makespan": 30097, "ii": 298.0, "peak": 10, "target_met": true, "same_as_v1": false}
+{"buffers": 11, "status": "complete", "completed": 100, "makespan": 30097, "ii": 298.0, "peak": 11, "target_met": true, "same_as_v1": true}
+{"buffers": 12, "status": "complete", "completed": 100, "makespan": 30097, "ii": 298.0, "peak": 11, "target_met": true, "same_as_v1": true}
+{"output": "/mnt/d/02_学习总结/06_perf_tuning/02_simt_OoO_pipeline/modeling/v2/out", "minimum_for_throughput": 9, "minimum_for_exact_v1": 11, "target_ii": 298.0, "verification": "PASS"}

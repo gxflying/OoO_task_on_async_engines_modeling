@@ -1,0 +1,219 @@
+{
+  "iterations": 100,
+  "queue_depth": 5,
+  "policy": "ooo",
+  "max_cycles": 1000000,
+  "operations": [
+    {
+      "id": "load1R1",
+      "engine": "rdma",
+      "duration": 87,
+      "label": "load K0",
+      "deps": []
+    },
+    {
+      "id": "wdma1R1",
+      "engine": "wdma",
+      "duration": 46,
+      "label": "wdma K",
+      "deps": [
+        "load1R1"
+      ]
+    },
+    {
+      "id": "load1R2",
+      "engine": "rdma",
+      "duration": 87,
+      "label": "load V0",
+      "deps": []
+    },
+    {
+      "id": "wdma1R2",
+      "engine": "wdma",
+      "duration": 46,
+      "label": "wdma V",
+      "deps": [
+        "load1R2"
+      ]
+    },
+    {
+      "id": "tensor1R1",
+      "engine": "tensor",
+      "duration": 118,
+      "label": "MM1",
+      "deps": [
+        "wdma1R1"
+      ]
+    },
+    {
+      "id": "vector1R1",
+      "engine": "vector",
+      "duration": 88,
+      "label": "v scale",
+      "deps": [
+        "tensor1R1"
+      ]
+    },
+    {
+      "id": "vector1R2",
+      "engine": "vector",
+      "duration": 53,
+      "label": "fa0",
+      "deps": [
+        "vector1R1"
+      ]
+    },
+    {
+      "id": "tensor1R2",
+      "engine": "tensor",
+      "duration": 111,
+      "label": "MM2",
+      "deps": [
+        "wdma1R2",
+        "vector1R2"
+      ]
+    },
+    {
+      "id": "vector1R3",
+      "engine": "vector",
+      "duration": 65,
+      "label": "fa1",
+      "deps": [
+        "vector1R2"
+      ]
+    },
+    {
+      "id": "vector1R4",
+      "engine": "vector",
+      "duration": 92,
+      "label": "fa2",
+      "deps": [
+        "tensor1R2",
+        "vector1R3"
+      ]
+    }
+  ],
+  "time_unit": "px",
+  "timing_source": {
+    "source_sha256": "e75412cd30a8b460e85a513be2b21c5f64deafb7ee72ab2bad73340e034dd7dc",
+    "original_size": [
+      725,
+      584
+    ],
+    "zoom": 4,
+    "measurement_rule": "连续暗竖边按相邻像素列分组；选组内亮度中位数最小的列；width_px=x_right-x_left，不加1",
+    "precision_note": "整数像素边界口径；抗锯齿边缘不用于推断原始矢量坐标或亚像素精度",
+    "blocks": [
+      {
+        "op": "load1R1",
+        "x_left": 46,
+        "x_right": 133,
+        "width_px": 87,
+        "y_top": 251,
+        "y_bottom": 271,
+        "attention_x_left": 39,
+        "attention_x_right": 126,
+        "attention_width_px": 87
+      },
+      {
+        "op": "wdma1R1",
+        "x_left": 133,
+        "x_right": 179,
+        "width_px": 46,
+        "y_top": 251,
+        "y_bottom": 271,
+        "attention_x_left": 126,
+        "attention_x_right": 172,
+        "attention_width_px": 46
+      },
+      {
+        "op": "load1R2",
+        "x_left": 134,
+        "x_right": 221,
+        "width_px": 87,
+        "y_top": 272,
+        "y_bottom": 292,
+        "attention_x_left": 135,
+        "attention_x_right": 222,
+        "attention_width_px": 87
+      },
+      {
+        "op": "wdma1R2",
+        "x_left": 221,
+        "x_right": 267,
+        "width_px": 46,
+        "y_top": 272,
+        "y_bottom": 292,
+        "attention_x_left": 222,
+        "attention_x_right": 268,
+        "attention_width_px": 46
+      },
+      {
+        "op": "tensor1R1",
+        "x_left": 181,
+        "x_right": 299,
+        "width_px": 118,
+        "y_top": 206,
+        "y_bottom": 226,
+        "attention_x_left": 181,
+        "attention_x_right": 299,
+        "attention_width_px": 118
+      },
+      {
+        "op": "vector1R1",
+        "x_left": 300,
+        "x_right": 388,
+        "width_px": 88,
+        "y_top": 226,
+        "y_bottom": 246,
+        "attention_x_left": 300,
+        "attention_x_right": 388,
+        "attention_width_px": 88
+      },
+      {
+        "op": "vector1R2",
+        "x_left": 388,
+        "x_right": 441,
+        "width_px": 53,
+        "y_top": 226,
+        "y_bottom": 246,
+        "attention_x_left": 388,
+        "attention_x_right": 441,
+        "attention_width_px": 53
+      },
+      {
+        "op": "tensor1R2",
+        "x_left": 441,
+        "x_right": 552,
+        "width_px": 111,
+        "y_top": 206,
+        "y_bottom": 226,
+        "attention_x_left": 441,
+        "attention_x_right": 552,
+        "attention_width_px": 111
+      },
+      {
+        "op": "vector1R3",
+        "x_left": 441,
+        "x_right": 506,
+        "width_px": 65,
+        "y_top": 226,
+        "y_bottom": 246,
+        "attention_x_left": 441,
+        "attention_x_right": 506,
+        "attention_width_px": 65
+      },
+      {
+        "op": "vector1R4",
+        "x_left": 552,
+        "x_right": 644,
+        "width_px": 92,
+        "y_top": 226,
+        "y_bottom": 246,
+        "attention_x_left": 552,
+        "attention_x_right": 644,
+        "attention_width_px": 92
+      }
+    ]
+  }
+}

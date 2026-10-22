@@ -1,0 +1,13 @@
+{
+  "source": "modeling v1 pixel timing",
+  "target_ii": 298,
+  "queue_depth": 5,
+  "iterations": 100,
+  "files": {
+    "pipeline.py": "777e3b66205598e30e6d024e5450bea42b5a77cdf08908bfb2c80ebe4db7530a",
+    "config.json": "00cfbe6aed2a2eae4fa2155465ec0f2f9415b51ea27ceb5acc03f8fd6adf9136",
+    "report_template.html": "84f0816acce8f7b6897b737b8933bba523790d4c0b1c2b7ce61e7430270af44c",
+    "out/trace.json": "9f5333968c345b038e2b8503d5cf3ba66295ca4926b00dd4406f9bb2a5478c78",
+    "out/summary.json": "7abcbb787f4f320a3422a29758a98d2ea61666e85960fb7f08c0aee19d7af022"
+  }
+}

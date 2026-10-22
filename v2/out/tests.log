@@ -1,0 +1,20 @@
+test_11_matches_v1_and_9_only_delays_noncritical_transfers (test_memory_model.MemoryTests) ... ok
+test_300_iterations_confirm_8_9_and_11 (test_memory_model.MemoryTests) ... ok
+test_allocation_is_atomic_and_cannot_overwrite_live_slot (test_memory_model.MemoryTests) ... ok
+test_corrupted_lifetimes_and_alias_are_rejected (test_memory_model.MemoryTests) ... ok
+test_fanout_keeps_data_until_last_consumer_completion (test_memory_model.MemoryTests) ... ok
+test_fixed_trace_peak_and_interval_boundaries (test_memory_model.MemoryTests) ... ok
+test_fork_join_has_two_real_inputs_and_no_inplace_write (test_memory_model.MemoryTests) ... ok
+test_generation_rejects_stale_handle_after_reuse (test_memory_model.MemoryTests) ... ok
+test_large_pool_matches_v1_for_random_dags_and_fifo (test_memory_model.MemoryTests) ... ok
+test_pixel_sweep_minimum_and_nonmonotonic_cases (test_memory_model.MemoryTests) ... ok
+test_root_needs_two_buffers_and_sink_releases_at_end (test_memory_model.MemoryTests) ... ok
+test_same_boundary_reclaim_and_refill_has_no_bubble (test_memory_model.MemoryTests) ... ok
+test_same_engine_chain_releases_only_after_read_finishes (test_memory_model.MemoryTests) ... ok
+test_timeout_does_not_report_success (test_memory_model.MemoryTests) ... ok
+test_unstarted_consumer_also_prevents_release (test_memory_model.MemoryTests) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 2.693s
+
+OK

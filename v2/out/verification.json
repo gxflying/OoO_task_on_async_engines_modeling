@@ -1,0 +1,67 @@
+{
+  "schedule_and_memory_invariants": "PASS",
+  "scanned_counts": 12,
+  "long_run_checks": [
+    {
+      "buffers": 8,
+      "iterations": 300,
+      "status": "complete",
+      "makespan": 142984,
+      "steady": {
+        "start": 761,
+        "confirmed_at": 1715,
+        "period": 477,
+        "iterations_per_period": 1,
+        "criterion": "调度及 buffer 所有权/读者完整状态，经轮次和平等槽位重命名连续三次相同",
+        "measurement_start": 761,
+        "measurement_end": 142430,
+        "measurement_periods": 297
+      },
+      "ii": 477.0,
+      "consistent": true
+    },
+    {
+      "buffers": 9,
+      "iterations": 300,
+      "status": "complete",
+      "makespan": 89697,
+      "steady": {
+        "start": 690,
+        "confirmed_at": 1286,
+        "period": 298,
+        "iterations_per_period": 1,
+        "criterion": "调度及 buffer 所有权/读者完整状态，经轮次和平等槽位重命名连续三次相同",
+        "measurement_start": 690,
+        "measurement_end": 89196,
+        "measurement_periods": 297
+      },
+      "ii": 298.0,
+      "consistent": true
+    },
+    {
+      "buffers": 11,
+      "iterations": 300,
+      "status": "complete",
+      "makespan": 89697,
+      "steady": {
+        "start": 690,
+        "confirmed_at": 1286,
+        "period": 298,
+        "iterations_per_period": 1,
+        "criterion": "调度及 buffer 所有权/读者完整状态，经轮次和平等槽位重命名连续三次相同",
+        "measurement_start": 690,
+        "measurement_end": 89196,
+        "measurement_periods": 297
+      },
+      "ii": 298.0,
+      "consistent": true
+    }
+  ],
+  "baseline_files_unchanged": {
+    "pipeline.py": true,
+    "config.json": true,
+    "report_template.html": true,
+    "out/trace.json": true,
+    "out/summary.json": true
+  }
+}

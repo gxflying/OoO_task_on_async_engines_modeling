@@ -1,0 +1,16 @@
+{
+  "result": "PASS",
+  "page_errors": [],
+  "checks": [
+    "12 capacities",
+    "1000 operations and 1200 leases",
+    "lease coordinates",
+    "producer/consumer details",
+    "time cursor",
+    "OOO/FIFO/exact tabs",
+    "11 simultaneous live buffers",
+    "all presets",
+    "SVG export",
+    "390px overflow"
+  ]
+}
