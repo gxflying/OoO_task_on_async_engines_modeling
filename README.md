@@ -1,5 +1,9 @@
 # Attention pipe 像素测量与乱序调度模拟
 
+首次阅读建议先看 **[仿真模型：硬件架构、执行约束与前提条件](MODEL_ARCHITECTURE.md)**，其中统一说明 v1/v2/v3 的建模对象、版本范围、资源与生命周期规则、前提假设及复现入口。
+
+版本导航：[v1 队列与依赖基线（本文）](#像素测量方法) · [v2 共享 buffer](v2/README.md) · [v3 动态 barrier](v3/README.md) · [循环伪代码](v3/pipeline_pseudocode.md)。本文下方的“当前版本”及默认报告均指根目录 v1 像素时长模型；v2/v3 结果在各自子目录。
+
 当前版本以原始截图的**整数像素边界间距**作为指令时长，1 原图像素宽度对应 1 仿真时间单位，记为 px。已在 WSL 中执行 100 轮、1000 条指令，完成队列深度 1～5 的 OoO/FIFO 全部 10 组对照。
 
 直接打开 [out/report.html](out/report.html)。报告内嵌全部动态轨迹、像素测量表和 4 倍放大标注图，无需服务器。此前的近似时长配置及报告保存在 [history/approximate_v1](history/approximate_v1/)，不与当前数据混用。
