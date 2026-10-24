@@ -1,0 +1,18 @@
+{
+  "result": "PASS",
+  "page_errors": [],
+  "checks": [
+    "22 ID capacities",
+    "10-operation program",
+    "6 actual traces",
+    "one-hot mask details",
+    "strict event-order bitmap peak",
+    "zero-duration ID markers",
+    "deadlock state",
+    "1000 completed operations",
+    "buffer filter",
+    "presets",
+    "SVG export",
+    "390px viewport"
+  ]
+}

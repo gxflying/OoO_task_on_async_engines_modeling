@@ -1,0 +1,32 @@
+test_allocation_failure_is_atomic (test_barrier_pool.BarrierPoolTests) ... ok
+test_invalid_handle_rejected_without_index_access (test_barrier_pool.BarrierPoolTests) ... ok
+test_invalid_request_cannot_partially_allocate (test_barrier_pool.BarrierPoolTests) ... ok
+test_lowest_free_and_same_time_recycle (test_barrier_pool.BarrierPoolTests) ... ok
+test_one_hot_id_and_wait_all (test_barrier_pool.BarrierPoolTests) ... ok
+test_owner_and_export_cannot_mutate_pool (test_barrier_pool.BarrierPoolTests) ... ok
+test_peaks_distinguish_reserved_full_and_dynamic_empty (test_barrier_pool.BarrierPoolTests) ... ok
+test_reserved_and_dynamic_use_separate_consume_operations (test_barrier_pool.BarrierPoolTests) ... ok
+test_reserved_empty_lifecycle_reuses_id_without_free (test_barrier_pool.BarrierPoolTests) ... ok
+test_reuse_generation_rejects_stale_handles (test_barrier_pool.BarrierPoolTests) ... ok
+test_signal_persists_until_consumed (test_barrier_pool.BarrierPoolTests) ... ok
+test_time_cannot_go_backwards (test_barrier_pool.BarrierPoolTests) ... ok
+test_unready_wait_and_early_release_forbidden (test_barrier_pool.BarrierPoolTests) ... ok
+test_zero_capacity_and_invalid_capacity (test_barrier_pool.BarrierPoolTests) ... ok
+test_zero_duration_leases_preserve_total_event_order_and_peak (test_barrier_pool.BarrierPoolTests) ... ok
+test_completion_exactly_at_limit_is_allowed (test_protocol.FullEmptyProtocolTests) ... ok
+test_completion_leaves_only_one_ready_empty_per_buffer (test_protocol.FullEmptyProtocolTests) ... ok
+test_fanin_wait_is_atomic_and_keeps_early_full_ready (test_protocol.FullEmptyProtocolTests) ... ok
+test_fanout_empty_is_set_only_after_last_reader_finishes (test_protocol.FullEmptyProtocolTests) ... ok
+test_fanout_publish_deadlock_cannot_release_source_early (test_protocol.FullEmptyProtocolTests) ... ok
+test_full_is_released_at_consumer_start_but_input_remains_live (test_protocol.FullEmptyProtocolTests) ... ok
+test_initial_empty_ids_are_real_capacity_occupants (test_protocol.FullEmptyProtocolTests) ... ok
+test_sufficient_ids_preserve_v2_timing_for_attention_pipeline (test_protocol.FullEmptyProtocolTests) ... ok
+test_verifier_rejects_empty_owner_wrong_buffer_generation (test_protocol.FullEmptyProtocolTests) ... ok
+test_verifier_rejects_full_empty_reference_swapping (test_protocol.FullEmptyProtocolTests) ... ok
+test_verifier_rejects_omitted_empty_wait_or_source_input (test_protocol.FullEmptyProtocolTests) ... ok
+test_wait_release_retries_blocked_completion_in_same_timestamp (test_protocol.FullEmptyProtocolTests) ... ok
+
+----------------------------------------------------------------------
+Ran 27 tests in 0.508s
+
+OK
