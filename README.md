@@ -2,7 +2,9 @@
 
 首次阅读建议先看 **[仿真模型：硬件架构、执行约束与前提条件](MODEL_ARCHITECTURE.md)**，其中统一说明 v1/v2/v3 的建模对象、版本范围、资源与生命周期规则、前提假设及复现入口。
 
-版本导航：[v1 队列与依赖基线（本文）](#像素测量方法) · [v2 共享 buffer](v2/README.md) · [v3 动态 barrier](v3/README.md) · [循环伪代码](v3/pipeline_pseudocode.md)。本文下方的“当前版本”及默认报告均指根目录 v1 像素时长模型；v2/v3 结果在各自子目录。
+版本导航：[v1 队列与依赖基线（本文）](#像素测量方法) · [v2 共享 buffer](v2/README.md) · [v3 动态 barrier](v3/README.md) · [v3 循环伪代码](v3/pipeline_pseudocode.md) · [v3.1 独立 buffer/barrier 事件池与阻塞 API](v3.1/README.md) · [v3 / v3.1 Buffer 占用对比](comparison/README.md)。本文下方的“当前版本”及默认报告均指根目录 v1 像素时长模型；各版本结果在各自子目录。
+
+新增报告：[v3.1 资源容量与性能矩阵](v3.1/out/report.html)、[独立 Buffer 占用对比](comparison/out/buffer_comparison.html)。下载 HTML 后可离线打开。v3.1 的资源分配和事件语义见其版本说明；上方硬件架构文档的版本范围仍为 v1/v2/v3。
 
 当前版本以原始截图的**整数像素边界间距**作为指令时长，1 原图像素宽度对应 1 仿真时间单位，记为 px。已在 WSL 中执行 100 轮、1000 条指令，完成队列深度 1～5 的 OoO/FIFO 全部 10 组对照。
 

@@ -1,0 +1,20 @@
+{
+  "sources_sha256": {
+    "v3/out/trace_b9_m10_ooo.json": "47b9d0af2dbb3cc8a7d2a89e0e1ff553fbbf405ad9f30c95658129717d8a1eb9",
+    "v3/out/trace_b9_m10_fifo.json": "46b1f711304b5fdd736db361972517159c2cfc1c0e451935c85451eb662bb13b",
+    "v3/out/trace_b11_m12_ooo.json": "28ca8eabc04594895496eb21195f16b43d9b7ef26169bd5b58c10c9f6fd45612",
+    "v3/out/trace_b11_m12_fifo.json": "b26703a4d0a69cb6d816e3c265a287d8e5db43197f03fe6a39b2a2cf83809a55",
+    "comparison/out/trace_v31_b9_m10_ooo.json": "50dcf854d969e3e7765a0c1067f47796ce0a7003639317eebd7949fc4bdaaa32",
+    "comparison/out/trace_v31_b9_m10_fifo.json": "037e3e72fc750ec6090a599f103957766f867033b76d5f1ae5f53d5f63158f57",
+    "comparison/out/trace_v31_b11_m12_ooo.json": "cd510cf7a301778e4aa672fb8d075f3329eafe337e319b2060532de241595fac",
+    "comparison/out/trace_v31_b11_m12_fifo.json": "4bd9fa8e9edab4f02a49c6c8264ab1f1be83a97f2ca16941810a0e0e48793114",
+    "v3.1/out/trace_b13_m11_ooo.json": "2acbc58fff057f4c42badc58cdfd87fdc075302d14ff7b5aa3f0c9b32481d1f9",
+    "v3.1/out/trace_b13_m11_fifo.json": "b206b9b91b5e14efe39092b4461aa4c63cc4136423f281174615ebc24e3b8f0c",
+    "v3/config.json": "2a111a40022f0d1cd39adb4aedde7598c9d14f99220faf50202365a1a8790f1d",
+    "v3/simulator.py": "5854c4dbf1ac07495aba078cc1c86fa3c691473aea094bdd975d5fd864189b36",
+    "v3.1/config.json": "2b042eed3546367581516261ea15003daee84c9c2ffddebdb7653807aeb5f74c",
+    "v3.1/simulator.py": "25ae2b1db5c83fb2c8a38af25c8de2e1c0d05e1e880db2ab511069343103ae4c"
+  },
+  "cases": 10,
+  "validation": "模型原始 sweep II/makespan 一致；输入引用、占用区间、复用不重叠、engine 不重叠通过"
+}

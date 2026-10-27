@@ -13,6 +13,12 @@
     "buffer filter",
     "presets",
     "SVG export",
-    "390px viewport"
+    "390px viewport",
+    "buffer allocation/release intervals",
+    "producer compute intervals",
+    "all consumer compute intervals",
+    "unreleased buffer markers",
+    "1200 buffer leases",
+    "buffer details and SVG export"
   ]
 }

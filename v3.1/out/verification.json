@@ -1,0 +1,112 @@
+{
+  "cases": 1152,
+  "long_checks": [
+    {
+      "key": "b2_m1_ooo",
+      "iterations": 300,
+      "status": "deadlock",
+      "makespan": null,
+      "ii": null,
+      "consistent": true
+    },
+    {
+      "key": "b7_m8_fifo",
+      "iterations": 300,
+      "status": "complete",
+      "makespan": 137238,
+      "ii": 457.0,
+      "consistent": true
+    },
+    {
+      "key": "b8_m7_fifo",
+      "iterations": 300,
+      "status": "complete",
+      "makespan": 117803,
+      "ii": 392.0,
+      "consistent": true
+    },
+    {
+      "key": "b8_m8_fifo",
+      "iterations": 300,
+      "status": "complete",
+      "makespan": 111225,
+      "ii": 370.0,
+      "consistent": true
+    },
+    {
+      "key": "b12_m11_fifo",
+      "iterations": 300,
+      "status": "complete",
+      "makespan": 111225,
+      "ii": 370.0,
+      "consistent": true
+    },
+    {
+      "key": "b12_m11_ooo",
+      "iterations": 300,
+      "status": "complete",
+      "makespan": 93376,
+      "ii": 310.5,
+      "consistent": true
+    },
+    {
+      "key": "b13_m10_fifo",
+      "iterations": 300,
+      "status": "complete",
+      "makespan": 111225,
+      "ii": 370.0,
+      "consistent": true
+    },
+    {
+      "key": "b13_m10_ooo",
+      "iterations": 300,
+      "status": "complete",
+      "makespan": 93683,
+      "ii": 311.5,
+      "consistent": true
+    },
+    {
+      "key": "b13_m11_fifo",
+      "iterations": 300,
+      "status": "complete",
+      "makespan": 111225,
+      "ii": 370.0,
+      "consistent": true
+    },
+    {
+      "key": "b13_m11_ooo",
+      "iterations": 300,
+      "status": "complete",
+      "makespan": 89651,
+      "ii": 298.0,
+      "consistent": true
+    },
+    {
+      "key": "b14_m9_ooo",
+      "iterations": 300,
+      "status": "complete",
+      "makespan": 111225,
+      "ii": 370.0,
+      "consistent": true
+    },
+    {
+      "key": "b14_m10_ooo",
+      "iterations": 300,
+      "status": "complete",
+      "makespan": 89660,
+      "ii": 298.0,
+      "consistent": true
+    }
+  ],
+  "baseline_files_unchanged": {
+    "pipeline.py": true,
+    "config.json": true,
+    "v2/memory.py": true,
+    "v2/simulator.py": true,
+    "v3/barrier.py": true,
+    "v3/simulator.py": true,
+    "v3/config.json": true,
+    "v3/pipeline_pseudocode.md": true
+  },
+  "invariants": "PASS"
+}

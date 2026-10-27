@@ -1,0 +1,17 @@
+{
+  "result": "PASS",
+  "page_errors": [],
+  "checks": [
+    "576 cells per policy",
+    "Pareto borders",
+    "nonmonotonic case",
+    "all saved traces",
+    "blocking snapshots",
+    "1000 instructions",
+    "1200 buffer and 1200 barrier lifetimes",
+    "real interval geometry",
+    "instruction/resource details",
+    "SVG export",
+    "390px viewport"
+  ]
+}

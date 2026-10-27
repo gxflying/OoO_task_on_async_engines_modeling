@@ -1,228 +1,266 @@
-# Pipe 循环与动态 barrier 伪代码
+# Pipe 循环：阻塞 API、双 free-list 与异步执行
 
-本文对应当前 v3 的调度语义，用于说明循环提交、硬件资源限制、buffer 复用和 full/empty barrier 生命周期。它是说明性伪代码，不是可直接运行的 Python；实际实现见 [simulator.py](simulator.py) 与 [barrier.py](barrier.py)。
+本文以**调用本身阻塞、成功才返回**的 API 语义描述模型。`try_get_buffer`、`try_get_barrier_id` 不向上层返回 BLOCKED 或 None；资源暂不可用时挂起当前调用上下文，由调度器继续执行其他工作，资源变化后恢复。
 
-## 1. 硬件与初始化
+这是说明性伪代码，不是可直接运行的 Python。现有 [simulator.py](simulator.py) 用单线程事件循环、队列保留及固定点重试实现阻塞行为，并没有名为这两个 API 的 Python 阻塞函数。实际 buffer 空闲集合由 `mem.live` 的补集表示，ID 空闲集合由 `ids.live` 的补集表示；本文 bitmap 是这些状态的显式表示。没有新增硬件功能或重新生成性能结果。
 
-RDMA、WDMA、Tensor、Vector **各一个执行单元、各一个指令队列**。每个执行单元同时最多执行一条指令，且只有成功完成发布后才释放；计算结束但 barrier ID 不足时仍保持占用。
+## 1. 三类 bitmap，各自只表达一种状态
+
+| 状态 | bit=1 的含义 | 修改时点 |
+|---|---|---|
+| `buffer_free_bitmap` | 对应物理 buffer 可分配，且其当前 empty 已 SET | 分配清位；最后消费者完成并发布 empty 后置位 |
+| `barrier_free_bitmap` | 对应物理 ID 未被占用，可用于任何新 full/empty 事件 | 分配清位；成功 WAIT 自动回收时置位 |
+| `barrier_ready_bitmap` | 对应已分配 ID 的事件已 SET | SET 置位；成功 WAIT 消费时清位 |
+
+ID 已分配但尚未 SET 时，free=0、ready=0；因此不能用一个 bitmap 同时表达空闲与就绪。单个 ID 的 one-hot 编码是 `1 << slot`，多事件 WAIT/SET 的 mask 是多个 one-hot 的 OR。
+
+full 和 empty 共用一个动态 ID free-list，没有永久固定的一对 ID。每条依赖边一个 full ID；多个消费者对应多个独立 full ID，生产者在完成时 SET 这些 ID，各消费者成功 WAIT 自己的 ID 后自动回收。
+
+辅助元数据包括 buffer 的生产者/全部消费者/读者集合、`empty_ref`、逻辑依赖边到实际 ID 的绑定，以及 buffer/ID 的 generation。它们不额外算作物理 barrier ID。
+
+## 2. 谁处理阻塞，谁继续运行
+
+| 调用上下文 | 阻塞时保留什么 | 由什么唤醒 |
+|---|---|---|
+| 前端 `submit` | 当前程序游标，尚未入队的指令 | 目标队列释放一项 |
+| 待发射指令的 `try_get_buffer` | 指令仍在原队列，不预占 engine、不消费 WAIT、不半分配 buffer | buffer 的 empty 发布，或依赖/engine 条件改变 |
+| 完成发布的 `try_get_barrier_id` | 已运行指令、engine、输入读者与输出 buffer | 其他成功 WAIT 自动回收 ID |
+
+阻塞的是当前协程/硬件请求上下文，**不是整个仿真器，也不是所有执行单元**。`suspend(ticket)` 交还控制权；调度器推进其他可运行上下文和计算完成事件。若所有请求都阻塞且不存在未来事件，则报告真实死锁；初始化不可能满足时直接报告初始化失败。
+
+`subscribe(...)` 在检查资源的同一个临界区内登记等待，随后离开临界区再 `suspend(ticket)`。通知是持久的，若通知先于 suspend 到达，suspend 立即继续。唤醒后必须重新检查当前 bitmap，不能假定资源仍归自己；挂起期间不持有全局锁。
+
+## 3. 资源初始化
 
 ```python
-BUFFER_COUNT  = 9
-BARRIER_COUNT = 10
-QUEUE_DEPTH   = 5
-LOOP_COUNT    = 100
+BUFFER_COUNT, BARRIER_COUNT, QUEUE_DEPTH = 9, 10, 5
+ENGINES = [RDMA, WDMA, TENSOR, VECTOR]   # 每种各一个
 
-ENGINES = [RDMA, WDMA, TENSOR, VECTOR]
+buffer_free_bitmap  = 0                 # empty 初始化完成才公布可用
+barrier_free_bitmap = (1 << BARRIER_COUNT) - 1
+barrier_ready_bitmap = 0
+running = {e: None for e in ENGINES}
+queues  = {e: Queue(QUEUE_DEPTH) for e in ENGINES}
 
-buffer_pool  = create_buffer_pool(BUFFER_COUNT)
-barrier_pool = create_barrier_pool(BARRIER_COUNT)
-queues       = {engine: Queue(QUEUE_DEPTH) for engine in ENGINES}
-running      = {engine: None for engine in ENGINES}
+if BARRIER_COUNT < BUFFER_COUNT:
+    raise InitializationFailure()
 
-# 每块空闲 buffer 初始持有一个已 SET 的动态 empty ID。
-# 必须有 BUFFER_COUNT 个可用 ID，否则初始化不能成功。
-initial_ids = GET_IDS_ATOMIC(BUFFER_COUNT)
-for buf, id in zip(buffer_pool, initial_ids):
-    buf.empty = id
-    SET(id)
+def initial_plan():
+    return Plan(empty_events=[(slot, 0) for slot in range(BUFFER_COUNT)])
+
+def commit_initial(plan, ids):
+    for slot, id in zip(range(BUFFER_COUNT), ids):
+        empty_ref[slot] = resolved_ref(id, buffer_generation=0)
+        SET(id)
+        buffer_free_bitmap |= 1 << slot
+
+try_get_barrier_id(initial_plan, on_grant=commit_initial)
 ```
 
-单个 ID 编码为 `1 << slot`；多个 WAIT 的 mask 为这些 one-hot 编码的 OR。物理 ID 复用时递增 generation，通过 `(slot, generation)` 区分不同使用实例。full 与 empty 共用同一个 ID 池。
+## 4. ID 的阻塞分配、SET 和 WAIT 自动回收
 
-## 2. 循环展开与异步提交
-
-`F0…F9` 是每轮独立的**逻辑依赖引用**，创建它们不会占用物理 barrier ID。生产者成功完成时才取得物理 ID，消费者通过对应的逻辑边获得绑定结果。
+`try_get_barrier_id` 批量申请本次发布所需 ID，free-list 不足则挂起调用者。完成计划用回调在每次重试时重新计算，避免其他消费者完成后，本次需要新增的 empty 数量变化而沿用过期数量。
 
 ```python
-for i in range(LOOP_COUNT):
-    F = new_dependency_refs(count=10, iteration=i)
+def try_get_barrier_id(build_plan, on_grant):
+    while True:
+        with resource_atomic():
+            plan = build_plan()             # 重新计算 full/empty 事件集合
+            needed = len(plan.events)
+            if popcount(barrier_free_bitmap) >= needed:
+                slots = lowest_set_bits(barrier_free_bitmap, needed)
+                barrier_free_bitmap &= ~mask(slots)
+                ids = new_id_generations(slots)
+                register_owners(ids, plan.events)
 
-    # SUBMIT(engine, wait_full, operation, set_full)
-    # 按程序序入队；目标队列满时反压全局前端。
-    # 入队成功即可提交下一条，不等当前指令执行完成。
+                # 不插入调度让步：分配与发布提交属于同一原子事务。
+                on_grant(plan, ids)
+                return ids                  # 仅成功返回；没有 BLOCKED/None
 
-    SUBMIT(RDMA,   [],          load1R1(i),   [F[0]])
-    SUBMIT(WDMA,   [F[0]],      wdma1R1(i),   [F[2]])
+            ticket = subscribe(ID_RECYCLED)
+        suspend(ticket)                     # 只挂起当前调用者，其他请求继续
 
-    SUBMIT(RDMA,   [],          load1R2(i),   [F[1]])
-    SUBMIT(WDMA,   [F[1]],      wdma1R2(i),   [F[5]])
 
-    SUBMIT(TENSOR, [F[2]],      tensor1R1(i), [F[3]])
-    SUBMIT(VECTOR, [F[3]],      vector1R1(i), [F[4]])
-    SUBMIT(VECTOR, [F[4]],      vector1R2(i), [F[6], F[7]])
+def SET(id):
+    assert current_generation(id) and id_is_allocated(id)
+    assert not id_is_ready(id)
+    barrier_ready_bitmap |= id.one_hot
+    notify_subscribers(EVENT_SET, id)
 
-    SUBMIT(TENSOR, [F[5],F[6]], tensor1R2(i), [F[8]])
-    SUBMIT(VECTOR, [F[7]],      vector1R3(i), [F[9]])
-    SUBMIT(VECTOR, [F[8],F[9]], vector1R4(i), [])
 
-DRAIN_ALL_ENGINES()
+def consume_ready_ids(ids):
+    # 由发射事务调用；所有其他发射条件必须已经满足。
+    assert all(current_generation(id) for id in ids)
+    bits = OR(id.one_hot for id in ids)
+    assert (barrier_ready_bitmap & bits) == bits
+    barrier_ready_bitmap &= ~bits
+    barrier_free_bitmap  |= bits
+    retire_id_owners(ids)
+    notify_subscribers(ID_RECYCLED)
+    # 这就是成功 WAIT 的原子副作用，不要求调用者另外调用 free(id)。
 ```
 
-实际代码先生成循环的指令描述，再由前端游标逐条送入有限队列，与上述提交语义一致。生成描述、入队和开始执行是三个不同阶段；不会为每轮创建一套执行单元。
+`on_grant` 是同步提交回调，不得再次阻塞或让步。上述 API 和回调是对实际 `BarrierPool.allocate_many / signal / consume_and_release` 加调度等待的表达，不声称源文件已有同名封装。
 
-输出的全部消费者来自已知依赖图，包括尚未入队、尚未开始的消费者。`vector1R2` 的两个 full 引用指向同一块输出 buffer，但分别属于不同依赖边。
-
-## 3. 发射条件与单执行单元限制
+## 5. Buffer 的阻塞分配：先查 free-list，不足则等释放 barrier
 
 ```python
-def TRY_ISSUE(op):
-    # 硬件资源检查独立于 barrier 依赖检查。
-    if running[op.engine] is not None:
-        return BLOCKED_ENGINE_BUSY
+def try_get_buffer(op, on_grant):
+    needed = 1 + int(op.is_root)     # 新输出 + 首级 RDMA 的池内源输入
 
-    if not ALL_FULL_READY(op.wait_full):
-        return BLOCKED_DEPENDENCY
+    while True:
+        with resource_atomic():
+            if popcount(buffer_free_bitmap) < needed:
+                # 没有足够空闲项，等任一在用 buffer 的释放事件。
+                ticket = subscribe_any(current_buffer_release_refs())
+            elif not issue_admission_granted(op):
+                # engine busy、full 尚未 SET，或尚未轮到本指令。
+                # 不提前分配 buffer；否则会改变当前 v3 的资源调度规则。
+                ticket = subscribe(ENGINE_RELEASED, FULL_PUBLISHED,
+                                   BUFFER_EMPTY_PUBLISHED, ADMISSION_CHANGED)
+            else:
+                slots = lowest_set_bits(buffer_free_bitmap, needed)
+                empties = [empty_ref[s].physical_id for s in slots]
+                fulls = resolve_full_ids(op.wait_full)
+                assert all_ready(fulls + empties)
 
-    # 普通指令另申请一个输出 buffer。
-    # 首级 RDMA 还需要一个池内外部输入 buffer。
-    needed = 1 + (1 if op.is_root else 0)
-    new_buffers = find_free_buffers_with_ready_empty(needed)
-    if new_buffers is None:
-        return BLOCKED_BUFFER
+                # 取得输入数据句柄后再回收其 full ID。
+                inputs = resolve_upstream_buffers(op.wait_full)
+                consume_ready_ids(fulls + empties)
+                buffer_free_bitmap &= ~mask(slots)
+                handles = claim_buffer_generations(slots)
 
-    # 必须在回收 full ID 前取得它们对应的数据 buffer。
-    inputs = resolve_upstream_buffers(op.wait_full)
+                # 为本次占用建立新的逻辑释放引用，尚不分配物理 empty ID。
+                for h in handles:
+                    release_ref[h] = new_unbound_release_ref(h)
 
-    atomic:
-        # 只有全部条件齐备、现在就能开始，才消费并回收 WAIT。
-        WAIT_AND_FREE_ALL(op.wait_full)
+                on_grant(handles, inputs)    # 同一事务里占用 engine 并开始
+                return handles              # 仅成功返回
 
-        for buf in new_buffers:
-            WAIT_AND_FREE(buf.empty)
-            claim_new_buffer_generation(buf)
+        suspend(ticket)
+```
 
-        op.output = new_buffers[0]
+**动态 empty 的必要细节：** buffer 在用时，下一次 empty 的物理 ID 尚未分配。等待者先订阅逻辑 `release_ref(slot,generation)`；最后消费者发布 empty 时绑定实际 ID 并通知。不能提前等待一个凭空假设存在的物理 ID，也不能为每个等待者额外分配一个 ID。
+
+释放通知只是唤醒，不消费 empty。被唤醒者重新检查 free-list，只有真正取得对应 buffer 的新写入者才执行 WAIT 并自动回收那个 empty ID。即使另一个请求先取得该 buffer，后续等待者也不会重复消费旧 ID。
+
+`issue_admission_granted` 属于统一调度器：检查唯一 engine 空闲、全部 full ready，且本请求是当前策略选中的可发射项。OoO 选最老的全部条件满足者；FIFO 只选队首。待发射请求均可登记，但不因某个请求挂起而禁止其他 engine 或合法的 OoO 候选执行。
+
+## 6. 执行上下文与完成上下文
+
+```python
+def issue_context(op):
+    def start_engine(handles, inputs):
+        op.output = handles[0]
+        op.inputs = inputs + (handles[1:] if op.is_root else [])
         if op.is_root:
-            inputs.append(new_buffers[1])   # 外部输入已就绪
-        op.inputs = inputs
-
-        # 输出与输入不能同址；上游输出与下游输入共用物理 buffer。
+            initialize_external_input(handles[1], consumer=op, ready=True)
         assert op.output not in op.inputs
-        op.output.remaining_consumers = all_consumers_of(op)
-        mark_inputs_reading(op)
-
-        remove_from_queue(op)
+        initialize_output_consumers(op.output, all_consumers_of(op))
+        begin_read_all(op.inputs, op)
+        queues[op.engine].remove(op)
         running[op.engine] = op
         op.start = now
         op.compute_end = now + latency[op]
+        schedule_event(op.compute_end, completion_context, op)
 
-    return ISSUED
-```
+    try_get_buffer(op, on_grant=start_engine)   # 调用本身可以挂起
+    # 返回后已开始异步计算，本上下文不阻塞等待计算结束。
 
-OoO 从各队列选择最老的、同时满足依赖与资源条件的指令；FIFO 只检查队首。RDMA 的 `wait_full=[]` 只表示没有上游数据依赖，它仍需检查唯一 RDMA 单元是否空闲，并 WAIT 输入、输出两块 buffer 的 empty。
 
-## 4. 完成、发布与回收
+def completion_context(op):
+    # 此处 now >= compute_end，但 engine 和 buffer 仍归 op。
+    def current_publish_plan():
+        released = [h for h in op.inputs if remaining_consumers(h) == {op}]
+        if not op.set_full:                    # 外部 sink 立即接收末级结果
+            released.append(op.output)
+        return Plan(full_events=op.set_full, empty_events=released)
 
-```python
-def TRY_COMPLETE(op):
-    if now < op.compute_end:
-        return STILL_COMPUTING
+    def commit_publish(plan, ids):
+        full_ids, empty_ids = split_ids(ids, plan)
 
-    # 按当前已成功完成的状态重新计算，不预先批量计算多条指令。
-    # 包括尚未发射的消费者；只在本 op 是最后消费者时释放。
-    released_buffers = [
-        buf for buf in op.inputs
-        if buf.remaining_consumers == {op}
-    ]
+        # 实际 BufferPool.finish_read/finish_write 已负责最后读者回收。
+        # 不再对同一 lease 重复调用 release。
+        for h in op.inputs:
+            memory.finish_read(h, op, now)
+        memory.finish_write(op.output, now)
 
-    # 末级输出由外部 sink 在成功完成时立即接收。
-    if op.set_full == []:
-        released_buffers.append(op.output)
-
-    full_count  = len(op.set_full)
-    empty_count = len(released_buffers)
-
-    # 一次性得到全部 ID，失败时不得半分配或提前释放资源。
-    ids = TRY_GET_IDS_ATOMIC(full_count + empty_count)
-    if ids is None:
-        # 保留 running、输入读者、输出和所有 buffer 所有权。
-        return BLOCKED_ON_BARRIER_IDS
-
-    full_ids  = ids[:full_count]
-    empty_ids = ids[full_count:]
-
-    atomic:
-        finish_input_reads(op)
-        mark_output_ready(op.output)
-
-        for buf in released_buffers:
-            release_buffer(buf)
-
-        # 每条依赖边一个 full；fan-out 多个 full 指向同一输出。
-        for ref, id in zip(op.set_full, full_ids):
-            bind(ref, id, data_buffer=op.output)
+        for edge, id in zip(plan.full_events, full_ids):
+            bind_full(edge, id, op.output)
             SET(id)
 
-        for buf, id in zip(released_buffers, empty_ids):
-            buf.empty = id
+        for h, id in zip(plan.empty_events, empty_ids):
+            assert buffer_lease_released(h)
+            release_ref[h].bind(id)
+            empty_ref[h.slot] = release_ref[h]
             SET(id)
+            buffer_free_bitmap |= 1 << h.slot
+            notify_subscribers(BUFFER_EMPTY_PUBLISHED, release_ref[h])
 
         op.end = now
-        mark_operation_complete(op)
+        mark_done(op)
         running[op.engine] = None
+        notify_subscribers(ENGINE_RELEASED, op.engine)
 
-    return COMPLETED
+    # 挂起时保留 engine、所有输入读者和输出，不提前释放或部分发布。
+    try_get_barrier_id(current_publish_plan, on_grant=commit_publish)
 ```
 
-`compute_end` 是计算结束时刻，`end` 是成功发布、释放执行单元的时刻。full 在消费者**开始**时回收；数据 buffer 则要等全部直接消费者**成功完成**后才可复用。两者不能混淆。
-
-## 5. 同一时间点的调度循环
+## 7. 循环只提交描述，不在前端串行执行硬件任务
 
 ```python
-while unfinished_operations_exist():
-    repeat:
-        progress = False
+def frontend_context():
+    for i in range(100):
+        F = new_dependency_refs(10, iteration=i)   # 逻辑引用，不占物理 ID
 
-        # 固定仲裁顺序与当前实现一致。
-        for engine in [RDMA, WDMA, TENSOR, VECTOR]:
-            op = running[engine]
-            if op is not None:
-                progress |= (TRY_COMPLETE(op) == COMPLETED)
+        # submit 是队列提交 API：队列满时本调用挂起前端；其他 engine 继续。
+        submit(RDMA,   [],          load1R1(i),   [F[0]])
+        submit(WDMA,   [F[0]],      wdma1R1(i),   [F[2]])
+        submit(RDMA,   [],          load1R2(i),   [F[1]])
+        submit(WDMA,   [F[1]],      wdma1R2(i),   [F[5]])
+        submit(TENSOR, [F[2]],      tensor1R1(i), [F[3]])
+        submit(VECTOR, [F[3]],      vector1R1(i), [F[4]])
+        submit(VECTOR, [F[4]],      vector1R2(i), [F[6], F[7]])
+        submit(TENSOR, [F[5],F[6]], tensor1R2(i), [F[8]])
+        submit(VECTOR, [F[7]],      vector1R3(i), [F[9]])
+        submit(VECTOR, [F[8],F[9]], vector1R4(i), [])
 
-        # 遇目标队列满则停；不会跳过阻塞指令派发后面的指令。
-        dispatch_in_program_order_until_queue_full()
+    drain_all()     # 挂起前端，等所有 engine 完成；调度器仍运行
 
-        for engine in [RDMA, WDMA, TENSOR, VECTOR]:
-            if running[engine] is not None:
-                continue
 
-            op = select_oldest_eligible_queued_op(engine)
-            if op is not None:
-                progress |= (TRY_ISSUE(op) == ISSUED)
+def event_loop():
+    start_context(frontend_context)
+    while not all_operations_completed():
+        # 同时可推进时：完成发布 → 前端入队 → 发射；各阶段的 engine 顺序
+        # 均为 RDMA、WDMA、Tensor、Vector。通知先唤醒，再按该顺序仲裁。
+        run_runnable_contexts_to_quiescence()
 
-    until not progress
+        if all_operations_completed():
+            return
+        if no_future_compute_event() and no_runnable_context():
+            raise ResourceDeadlock(snapshot_all_waiters())
 
-    # WAIT 刚回收的 ID 可以同一时刻解除另一操作的完成阻塞。
-    # 同一时刻释放的 buffer 也允许立即复用。
-    if all_operations_completed():
-        break
-    if no_future_compute_completion_exists():
-        report_deadlock()
-        break
-
-    now = next_future_compute_completion_time()
+        advance_to_next_compute_event_and_wake_contexts()
 ```
 
-以上省略了实际代码中的最大时间上限、轨迹记录和独立验证器。barrier、buffer 与执行单元资源的检查及释放顺序均按当前 v3 语义表达。
+`submit` 成功入队后登记该指令的唯一待发射请求，不重复创建上下文。调度器始终保留这些请求；挂起/唤醒不是返回失败后重新创建指令。队列满只阻塞全局前端当前游标，不能跳过它去提交后面的其他 engine 指令。
 
-## 6. tensor1R1 → vector1R1 的局部对应关系
+## 8. 与当前实现的对应关系及边界
 
-```text
-tensor1R1:
-    WAIT 上游 wdma1R1 的 full(F2)
-    WAIT 自己输出 buffer 的 empty
-    执行 tensor1R1
-    GET_AND_SET full(F3)                 # 通知 vector1R1 数据就绪
-    GET_AND_SET 已消费完输入 buffer 的 empty
+| 本文表达 | 当前实现 |
+|---|---|
+| buffer free-list bitmap | `BufferPool.live` 补集及 `free_count` |
+| ID free-list bitmap | `BarrierPool.live` 补集及 `free_count` |
+| ID ready bitmap | `BarrierPool.ready_mask` |
+| buffer 原子分配 | `BufferPool.allocate_many` |
+| ID 原子分配 | `BarrierPool.allocate_many` |
+| 成功 WAIT 自动回收 | `BarrierPool.consume_and_release` |
+| SET | `BarrierPool.signal` |
+| 逻辑依赖/empty 绑定 | `full_edges` / `empty_slots` |
+| 挂起并重试 | 队列或 `running` 原位保留，同刻固定点重试和未来事件推进 |
 
-vector1R1:
-    WAIT full(F3)，回收该 full ID
-    WAIT 自己输出 buffer 的 empty
-    读取 tensor1R1 的输出，执行 vector1R1
-    GET_AND_SET full(F4)                 # 通知 vector1R2
-    GET_AND_SET tensor 输出 buffer 的 empty  # 此时才允许覆盖复用
-```
+源码现在用事件循环实现这些阻塞效果，不是 OS 线程阻塞 API。本文的上下文、订阅、回调和 bitmap 表达是为了把责任和调用顺序写清楚；没有声称新增了实际协程运行时或显式 bitmap 分配器。
 
-这个局部写法中的 GET_AND_SET 仍属于完成时的同一原子批次，并不表示允许先后独立成功、部分发布。
+保留原有约定：成功 WAIT 与实际发射绑定；同刻 SET/WAIT/回收没有额外延迟；完成发布整批原子申请 full+empty；首级 RDMA 有池内输入；末级输出立即被外部接收。如果改为“先消耗 full、再等 engine/buffer”或前端提前分配 buffer，资源生命周期和 barrier 最小数量都需要重新仿真，不能沿用旧结果。
 
-完整执行轨迹见 [out/instructions_b9_m10.txt](out/instructions_b9_m10.txt)，其中包含每条操作实际绑定的物理 ID、generation、one-hot mask 和起止时刻。
+完整实际绑定记录见 [out/instructions_b9_m10.txt](out/instructions_b9_m10.txt)，实现细节见 [simulator.py](simulator.py)、[barrier.py](barrier.py)、[BufferPool](../v2/memory.py)。

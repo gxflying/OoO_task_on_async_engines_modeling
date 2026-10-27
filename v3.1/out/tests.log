@@ -1,0 +1,21 @@
+test_bad_alias_or_early_release_cannot_pass_verifier (test_model.ModelTests) ... ok
+test_barrier_block_is_before_submit_and_does_not_create_empty_ids (test_model.ModelTests) ... ok
+test_barrier_get_wakes_on_wait_recycle_without_serializing_iterations (test_model.ModelTests) ... ok
+test_blocking_api_does_not_return_failure_to_caller (test_model.ModelTests) ... ok
+test_completion_exactly_at_time_limit (test_model.ModelTests) ... ok
+test_fanin_wait_all_does_not_consume_early_half (test_model.ModelTests) ... ok
+test_fanout_has_two_data_and_two_completion_ids_and_one_free (test_model.ModelTests) ... ok
+test_free_api_really_suspends_until_buffer_flag_is_set (test_model.ModelTests) ... ok
+test_generous_pools_match_existing_v1_compute_timing (test_model.ModelTests) ... ok
+test_one_engine_remains_serial_without_data_dependencies (test_model.ModelTests) ... ok
+test_partial_frontend_allocation_is_retained_on_block (test_model.ModelTests) ... ok
+test_queued_task_preallocates_but_does_not_execute (test_model.ModelTests) ... ok
+test_random_topological_dags_have_valid_lifetimes_and_match_reference (test_model.ModelTests) ... ok
+test_simple_chain_by_hand (test_model.ModelTests) ... ok
+test_two_bitmaps_and_two_namespaces_are_independent (test_model.ModelTests) ... ok
+test_wait_requires_set_and_reuse_rejects_old_generation (test_model.ModelTests) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 1.136s
+
+OK

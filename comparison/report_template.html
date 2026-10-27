@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Buffer 占用对比 · v3 / v3.1</title>
+<style>
+:root{font-family:system-ui,"Microsoft YaHei",sans-serif;color:#203447;background:#f3f6fa;font-size:14px}*{box-sizing:border-box}body{margin:0}main{max-width:1800px;margin:auto;padding:24px}h1{font-size:25px;margin:0 0 8px}h2{font-size:18px;margin:0}p{line-height:1.7;margin:8px 0}.muted{color:#5c7081}.card{background:white;border:1px solid #d6e0e9;border-radius:10px;padding:16px;margin:16px 0}.toolbar{display:flex;gap:10px 16px;flex-wrap:wrap;align-items:center}.toolbar label{display:flex;gap:7px;align-items:center}select,input,button{font:inherit;border:1px solid #b8c8d8;background:white;border-radius:5px;padding:7px;color:#203447}input{width:100px}button{cursor:pointer}button:hover{background:#e8eff8}button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #2468ad}.legend{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:12px;margin:14px 0 8px}.legend span{display:flex;align-items:center;gap:6px}.swatch{width:23px;height:9px;display:inline-block}.line{height:3px}.compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.panel{min-width:0;border:1px solid #d6e0e9;border-radius:8px;background:white;overflow:hidden}.panel-head{padding:14px 16px 10px;border-bottom:1px solid #e4eaf0}.v3{border-top:4px solid #2468ad}.v31{border-top:4px solid #a55a27}.plot{overflow:auto;background:#fff}.plot svg{display:block}.sub{font-size:12px;color:#5c7081;margin-top:5px}.details{padding:12px 16px;line-height:1.8;font-size:12px;min-height:100px;border-top:1px solid #e0e7ee}.details b{color:#203447}.scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:9px 12px;text-align:left;border-bottom:1px solid #e0e7ee;white-space:nowrap}th{background:#f5f8fb}.hit{cursor:pointer}.hit:hover .life,.hit.selected .life{stroke:#bd601b;stroke-width:2.5}.hit.selected text{font-weight:bold}a{color:#2468ad}.hide{display:none}summary{cursor:pointer;font-weight:600}.countline{fill:none;stroke-width:2}.crosshair{pointer-events:none;stroke:#637b8d;stroke-dasharray:4 3}#cursor{min-width:240px;font-variant-numeric:tabular-nums}#counts svg{max-width:100%}.footer{font-size:12px;color:#617586}#scenario-note{min-height:24px}@media(max-width:900px){main{padding:12px}.compare{grid-template-columns:1fr}h1{font-size:21px}.card{padding:12px}}
+.toolbar .hide{display:none}
+</style>
+<main>
+<h1>Buffer 占用对比 <span class="muted">v3 / v3.1</span></h1>
+<p class="muted">同一流水：100 轮，队列深度 5，RDMA / WDMA / Tensor / Vector 各 1 个。时间单位为截图测得的相对 px。所有区间来自实际仿真 trace。</p>
+<div class="card">
+ <div class="toolbar">
+  <label>对比配置 <select id="scenario"></select></label>
+  <label>调度 <select id="policy"><option value="ooo">乱序 OoO</option><option value="fifo">顺序 FIFO</option></select></label>
+  <button id="export">导出当前两版 Buffer 图 SVG</button>
+ </div>
+ <p id="scenario-note" class="muted"></p>
+ <div class="scroll"><table id="metrics"><thead><tr><th>指标</th><th>v3</th><th>v3.1</th></tr></thead><tbody></tbody></table></div>
+</div>
+<div class="card">
+ <div class="toolbar">
+  <label>起点 <input id="start" type="number" min="0" step="1" value="0"></label>
+  <label>跨度 <input id="span" type="number" min="1" step="1" value="1600"></label>
+  <button data-preset="startup">启动</button><button data-preset="steady">共同稳态窗口</button><button data-preset="all">完整 100 轮</button>
+  <button id="previous" aria-label="前移半个窗口">← 前移</button><button id="next" aria-label="后移半个窗口">后移 →</button>
+  <label>行布局 <select id="layout"><option value="physical">物理 buffer 槽位</option><option value="logical">按同一轮逻辑数据对齐</option></select></label>
+  <label id="iteration-control" class="hide">轮次 i <input id="iteration" type="number" min="0" max="99" value="0"></label>
+ </div>
+ <div class="legend"><span><i class="swatch" style="background:#e3eefb;border:1px solid #91a5b9"></i>浅色：分配 → 释放的完整占用</span><span><i class="swatch line" style="background:#2468ad"></i>蓝线：生产者计算</span><span><i class="swatch line" style="background:#237a45"></i>绿线：消费者读取（fan-out 分行）</span><span><i class="swatch" style="background:#e4e8ec"></i>灰底：外部源输入</span></div>
+ <p class="sub">两版始终使用同一绝对时间轴、比例及行高。B0 等物理槽位在不同版本没有数据对应关系；点击色块可同时标出两版的同一轮、同一逻辑数据。i 从 0 开始，g 表示该物理槽位的复用代数。</p>
+ <p class="sub">蓝线、绿线均为 start → compute_end；预分配等待、发布阻塞、等待消费者等占用仍保留在浅色底框中。依赖 barrier 的 WAIT 回收不等于 buffer 释放。</p>
+ <div id="cursor" class="sub" aria-live="polite">移动鼠标查看同一时刻的占用数量。</div>
+</div>
+<div class="compare">
+ <section class="panel v3"><div class="panel-head"><h2 id="title-0">v3</h2><div class="sub">分配：实际发射；释放：全部直接消费者成功完成</div><div id="window-0" class="sub"></div></div><div id="plot-0" class="plot"></div><div id="detail-0" class="details"></div></section>
+ <section class="panel v31"><div class="panel-head"><h2 id="title-1">v3.1</h2><div class="sub">分配：前端 get_buffer；释放：完成回调 / fan-out 回收协程</div><div id="window-1" class="sub"></div></div><div id="plot-1" class="plot"></div><div id="detail-1" class="details"></div></section>
+</div>
+<div class="card"><h2>同一时刻的 buffer 占用数量</h2><p class="sub">蓝色 v3，棕色 v3.1；阶梯线表示 [分配, 释放) 内存活的 buffer 数量。该图始终统计全部数据，不随逻辑行筛选改变。</p><div id="counts" class="plot"></div></div>
+<div class="card"><details><summary>对比口径与数据来源</summary>
+ <p>v3 在指令实际发射时原子分配输入 / 输出空间，依赖 full 和复用 empty 共享 barrier ID 池，完成时申请并发布。v3.1 在提交前顺序申请 buffer 与 barrier，后续 API 阻塞时保留已分配资源；buffer ID 有独立 freelist，数据依赖与共享输入的消费完成通知使用 barrier 池。</p>
+ <p>因此“相同容量”只代表 buffer 数量和 barrier 数量相同，barrier 承担的事件种类及分配时点仍然不同。这里展示的是各版本现有固定调度策略的轨迹，不是所有可能调度中的最优容量证明。</p>
+ <p>平均占用 = 所有 buffer 生命周期时长之和 / 全程时间；输出预占用均值 = 每个输出 buffer 从分配到生产者开始的时间均值（不含源输入）。物理 buffer 不重复计算共享消费者的输入。源输入计入池，最终输出在完成时由外部立即接收。</p>
+ <div id="sources" class="footer"></div>
+</details></div>
+<p class="footer">离线单文件，无网络依赖。由 modeling/comparison/build.py 从真实记录生成；既有 v3 / v3.1 仿真和报告保持独立。</p>
+</main>
+<script id="comparison-data" type="application/json">__DATA__</script>
+<script>
+'use strict';
+const D=JSON.parse(document.getElementById('comparison-data').textContent), $=id=>document.getElementById(id);
+const colors=['#e5effc','#fff2d9','#e4f2e7','#f4e6f7','#e0f3f3','#fbe7e5'];
+const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=x=>Number.isInteger(x)?String(x):x.toFixed(2), versions=['v3','v3.1'];
+let runs=[], selected=null, axis={}, svgOutputs=[], moving=false;
+function active(t,r){return r.leases.filter(l=>l.start<=t&&t<l.end).length;}
+function overlap(x,y,a,b){return Math.max(0,Math.min(y,b)-Math.max(x,a));}
+function updateRuns(){const s=D.scenarios.find(x=>x.id===$('scenario').value),p=$('policy').value;runs=versions.map(v=>D.runs[`${v}:b${s[v][0]}_m${s[v][1]}_${p}`]);
+ $('scenario-note').textContent=s.id==='target'?(p==='ooo'?'默认对比：两版均达到 II=298；v3 使用 9 buffer / 10 barrier，v3.1 使用 13 / 11。':'使用同一组代表容量切换到 FIFO；此时不保证达到 II=298。'):'两版使用相同数量的 buffer 和 barrier；分配与事件协议仍按各自版本执行。';
+ const rows=[['Buffer 数量',r=>r.buffers],['Barrier 数量',r=>r.barriers],['稳态 II（px / 轮，越小越好）',r=>num(r.ii)],['100 轮总时间（px）',r=>r.time],['全程峰值占用（buffer）',r=>r.peak],['全程平均占用（buffer）',r=>num(r.mean_live)],['输出预占用均值（px / 输出）',r=>num(r.mean_precompute)]];
+ $('metrics').querySelector('tbody').innerHTML=rows.map(([label,f])=>`<tr><td>${label}</td>${runs.map(r=>`<td>${f(r)}</td>`).join('')}</tr>`).join('');
+ $('sources').innerHTML=runs.map(r=>`<p>${r.version}：${esc(r.source)}<br>SHA-256：${r.source_sha256}</p>`).join('');draw();}
+function frame(w,h,a,b,left=62){const scale=(w-left-18)/(b-a),x=t=>left+(t-a)*scale;
+ let s=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" font-family="Arial,Microsoft YaHei,sans-serif" font-size="11" fill="#203447"><rect width="${w}" height="${h}" fill="white"/>`;
+ const raw=(b-a)/6,pow=10**Math.floor(Math.log10(raw)),step=[1,2,5,10].map(v=>v*pow).find(v=>v>=raw);
+ for(let t=Math.ceil(a/step)*step;t<=b;t+=step)s+=`<line x1="${x(t)}" x2="${x(t)}" y1="32" y2="${h-10}" stroke="#e5ebf1"/><text x="${x(t)}" y="21" text-anchor="middle">${num(t)}</text>`;
+ s+=`<text x="8" y="21">时间 px</text>`;return {s,x,scale,left};}
+function logicalRows(){return D.operations.flatMap(o=>[...(!o.deps.length?[`${o.id}:source_input`]:[]),`${o.id}:output`]);}
+function plot(r,index,w,a,b,rowCount){const logical=$('layout').value==='logical',iter=+$('iteration').value,rows=logicalRows(),h=46+rowCount*42,f=frame(w,h,a,b,logical?132:62);let s=f.s;
+ for(let j=0;j<rowCount;j++){const label=logical?rows[j].replace(':source_input',' / 源输入').replace(':output',''):j<r.buffers?`B${j}`:'—';s+=`<text x="8" y="${61+j*42}" font-size="10">${label}</text><line x1="${f.left}" x2="${w-18}" y1="${80+j*42}" y2="${80+j*42}" stroke="#e0e7ee"/>`;}
+ r.leases.forEach((l,k)=>{const p=r.records[l.owner];if(l.end<=a||l.start>=b||(logical&&p.iteration!==iter))return;const row=logical?rows.indexOf(`${p.op}:${l.kind}`):l.slot,y=42+row*42;
+ const rect=(start,end,dy,height,fill,cls,extra='')=>{const left=Math.max(a,start),right=Math.min(b,end);return right<=left?'':`<rect class="${cls}" ${extra} x="${f.x(left)}" y="${y+dy}" width="${(right-left)*f.scale}" height="${height}" fill="${fill}"/>`;};
+ s+=`<g class="hit${selected===l.logical?' selected':''}" data-index="${index}" data-lease="${k}"><title>B${l.slot}:g${l.generation} i${p.iteration}/${p.op} ${l.kind==='source_input'?'源输入':'输出'} 占用 [${l.start}, ${l.end})</title>`;
+ s+=rect(l.start,l.end,0,31,l.kind==='source_input'?'#e4e8ec':colors[p.iteration%6],'life','stroke="#91a5b9"');
+ if(l.kind==='output')s+=rect(p.start,p.compute_end,2,3,'#2468ad','producer');
+ l.consumers.forEach((seq,j)=>{const c=r.records[seq];s+=rect(c.start,c.compute_end,23-j*4,3,'#237a45','reader',`data-reader="${seq}"`);});
+ const width=overlap(l.start,l.end,a,b)*f.scale,label=`g${l.generation} i${p.iteration}/${p.label}`;
+ if(width>label.length*6.2)s+=`<text x="${f.x(Math.max(a,l.start))+width/2}" y="${y+17}" text-anchor="middle">${esc(label)}</text>`;s+='</g>';
+ });s+=`<line class="crosshair" x1="0" x2="0" y1="32" y2="${h-10}" visibility="hidden"/></svg>`;
+ svgOutputs[index]=s;$(`plot-${index}`).innerHTML=s;$(`title-${index}`).textContent=`${r.version} · ${r.buffers} buffer / ${r.barriers} barrier · ${r.policy.toUpperCase()}`;
+ const area=r.leases.reduce((s,l)=>s+overlap(l.start,l.end,a,b),0);const peak=Math.max(active(a,r),...r.curve.filter(x=>a<=x[0]&&x[0]<b).map(x=>x[1]));
+ $(`window-${index}`).textContent=`窗口 [${num(a)}, ${num(b)}) · 平均占用 ${num(area/(b-a))} · 峰值 ${peak}`;return f;}
+function drawCounts(w,a,b){const h=145,f=frame(w,h,a,b),max=Math.max(...runs.map(r=>r.buffers)),y=n=>120-n/max*80;let s=f.s;
+ for(const n of [0,max])s+=`<text x="12" y="${y(n)+3}">${n}</text><line x1="${f.left}" x2="${w-18}" y1="${y(n)}" y2="${y(n)}" stroke="#dce4ec"/>`;
+ runs.forEach((r,i)=>{let path=`M${f.x(a)},${y(active(a,r))}`;for(const [t,n] of r.curve)if(a<t&&t<b)path+=`H${f.x(t)}V${y(n)}`;path+=`H${f.x(b)}`;s+=`<path class="countline" data-version="${r.version}" d="${path}" stroke="${i===0?'#2468ad':'#a55a27'}"/>`;});$('counts').innerHTML=s+'</svg>';}
+function details(){runs.forEach((r,i)=>{const l=r.leases.find(l=>l.logical===selected);if(!l){$(`detail-${i}`).textContent='点击任一 buffer 色块，查看两版相同逻辑数据的占用、预分配及计算时间。';return;}const p=r.records[l.owner];
+ $(`detail-${i}`).innerHTML=`<b>i${p.iteration} / ${p.op} · ${l.kind==='source_input'?'源输入':'输出'} · B${l.slot}:g${l.generation}</b><br>占用 [${l.start}, ${l.end})，时长 ${l.end-l.start} px<br>`+
+ (l.kind==='output'?`分配 → 生产开始：${p.start-l.start} px；生产计算 [${p.start}, ${p.compute_end})；成功完成 ${p.end}<br>`:'外部源输入，无池内生产者计算。<br>')+
+ l.consumers.map(seq=>{const c=r.records[seq];return `消费者 ${c.op}：读取 [${c.start}, ${c.compute_end})，成功完成 ${c.end}`;}).join('<br>')+(l.consumers.length?'':'外部 sink 在生产完成时接收并释放。');});}
+function draw(){if(!runs.length)return;const max=Math.max(...runs.map(r=>r.time));let a=Math.max(0,Math.min(max-1,Number($('start').value)||0)),span=Math.max(1,Number($('span').value)||1600),b=Math.min(max,a+span);$('start').value=a;$('span').value=b-a;
+ $('iteration').value=Math.min(99,Math.max(0,Math.trunc(Number($('iteration').value)||0)));const logical=$('layout').value==='logical';$('iteration-control').classList.toggle('hide',!logical);
+ const w=Math.max(680,Math.floor(Math.min($('plot-0').clientWidth,$('plot-1').clientWidth))),rows=logical?logicalRows().length:Math.max(...runs.map(r=>r.buffers));
+ const f=plot(runs[0],0,w,a,b,rows);plot(runs[1],1,w,a,b,rows);axis={a,b,w,x:f.x,scale:f.scale,left:f.left};drawCounts(Math.max(680,$('counts').clientWidth),a,b);details();}
+function preset(name){const max=Math.max(...runs.map(r=>r.time));if(name==='all'){$('start').value=0;$('span').value=max;}else if(name==='steady'){$('start').value=Math.max(...runs.map(r=>r.steady_start));$('span').value=1600;}else{$('start').value=0;$('span').value=1600;}draw();}
+function logicalWindow(){if($('layout').value==='logical'){const iter=+$('iteration').value,ls=runs.flatMap(r=>r.leases.filter(l=>r.records[l.owner].iteration===iter));$('start').value=Math.max(0,Math.min(...ls.map(l=>l.start))-25);$('span').value=Math.max(...ls.map(l=>l.end))+25-(+$('start').value);}draw();}
+$('scenario').innerHTML=D.scenarios.map(s=>`<option value="${s.id}">${s.label}</option>`).join('');
+for(const id of ['scenario','policy'])$(id).addEventListener('change',()=>{selected=null;updateRuns();if($('layout').value==='logical')logicalWindow();});
+for(const id of ['start','span'])$(id).addEventListener('change',draw);
+for(const id of ['layout','iteration'])$(id).addEventListener('change',logicalWindow);
+document.querySelectorAll('[data-preset]').forEach(el=>el.addEventListener('click',()=>preset(el.dataset.preset)));
+$('previous').onclick=()=>{$('start').value=Math.max(0,axis.a-(axis.b-axis.a)/2);draw();};$('next').onclick=()=>{$('start').value=axis.a+(axis.b-axis.a)/2;draw();};
+document.addEventListener('click',e=>{const g=e.target.closest('[data-lease]');if(!g)return;selected=runs[+g.dataset.index].leases[+g.dataset.lease].logical;draw();});
+for(const i of [0,1]){const el=$(`plot-${i}`);el.addEventListener('mousemove',e=>{const svg=el.querySelector('svg'),x=e.clientX-svg.getBoundingClientRect().left,t=Math.round(axis.a+(x-axis.left)/axis.scale);if(t<axis.a||t>axis.b)return;document.querySelectorAll('.crosshair').forEach(l=>{l.setAttribute('x1',axis.x(t));l.setAttribute('x2',axis.x(t));l.setAttribute('visibility','visible');});$('cursor').textContent=`t=${t} px · v3 占用 ${active(t,runs[0])}/${runs[0].buffers} · v3.1 占用 ${active(t,runs[1])}/${runs[1].buffers}`;});el.addEventListener('scroll',()=>{if(moving)return;moving=true;$(`plot-${1-i}`).scrollLeft=el.scrollLeft;requestAnimationFrame(()=>moving=false);});}
+$('export').onclick=()=>{const parts=svgOutputs.map(s=>new DOMParser().parseFromString(s,'image/svg+xml').documentElement),h=+parts[0].getAttribute('height'),w=axis.w;const content=parts.map((s,i)=>`<text x="12" y="${26+i*(h+45)}" font-size="16">${esc($(`title-${i}`).textContent)}</text><g transform="translate(0,${40+i*(h+45)})">${s.innerHTML}</g>`).join('');const source=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${2*(h+45)}" font-family="Arial,Microsoft YaHei,sans-serif"><rect width="100%" height="100%" fill="white"/>${content}</svg>`;const url=URL.createObjectURL(new Blob([source],{type:'image/svg+xml;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download=`buffer-comparison-${$('scenario').value}-${$('policy').value}.svg`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+window.addEventListener('resize',draw);updateRuns();
+</script>
+</html>
